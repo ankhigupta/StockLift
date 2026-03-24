@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS bids (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  auction_id UUID NOT NULL REFERENCES auctions(id) ON DELETE CASCADE,
+  bidder_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  bid_amount DECIMAL(12,2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'PLACED' CHECK (status IN ('PLACED', 'LEADING', 'OUTBID', 'WON', 'LOST')),
+  created_at TIMESTAMP DEFAULT NOW()
+);
