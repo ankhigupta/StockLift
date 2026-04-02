@@ -18,9 +18,9 @@ const runMigrations = async () => {
       const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
       try {
         await pool.query(sql);
-        console.log(`✓ ${file}`);
+        console.log(` SUCCEEDED ${file}`);
       } catch (error) {
-        console.error(`✗ ${file}: ${error.message}`);
+        console.error(` NOT SUCCEEDED ${file}: ${error.message}`);
         process.exit(1);
       }
     }

@@ -8,7 +8,7 @@ const routes = require("./routes/index");
 const { errorHandler, notFound } = require("./middleware/error.middleware");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(morgan("dev"));
