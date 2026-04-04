@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const { initCronJobs } = require("./jobs/auction.jobs");
 require("dotenv").config();
 
 const { connectDB, pool } = require("./db/index");
@@ -36,6 +37,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 connectDB();
+initCronJobs();
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
