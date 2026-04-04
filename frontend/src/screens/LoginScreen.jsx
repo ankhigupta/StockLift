@@ -82,10 +82,10 @@ export default function LoginScreen({ navigation }) {
             styles.inputWrapper,
             error ? styles.inputError : null
           ]}>
-            <Text style={styles.inputIcon}>✉️</Text>
+            <Text style={styles.inputIcon}></Text>
             <TextInput
               style={styles.input}
-              placeholder="john@acmecorp.com"
+              placeholder="abc@acmecorp.com"
               placeholderTextColor="#BBAB9F"
               value={email}
               onChangeText={(text) => {
@@ -100,7 +100,7 @@ export default function LoginScreen({ navigation }) {
 
           <Text style={styles.fieldLabel}>PASSWORD</Text>
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>🔒</Text>
+            <Text style={styles.inputIcon}></Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your password"
@@ -147,7 +147,7 @@ export default function LoginScreen({ navigation }) {
           >
             <Text style={styles.registerText}>
               Don't have an account?{" "}
-              <Text style={styles.registerLink}>Create one</Text>
+              <Text style={styles.registerLink}>Register Now</Text>
             </Text>
           </TouchableOpacity>
 
