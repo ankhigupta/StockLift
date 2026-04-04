@@ -1,6 +1,6 @@
 const { pool } = require("../db/index");
 
-// POST /bids - place a bid
+// POST /bids - placing a bid
 const placeBid = async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -13,7 +13,7 @@ const placeBid = async (req, res, next) => {
 
     await client.query("BEGIN");
 
-    // Lock the auction row to prevent race conditions
+    // Locking the auction row to prevent race conditions
     const auctionResult = await client.query(
       "SELECT * FROM auctions WHERE id = $1 FOR UPDATE",
       [auction_id]
@@ -44,7 +44,7 @@ const placeBid = async (req, res, next) => {
       });
     }
 
-    // Mark previous leading bid as OUTBID
+    // Marking previous leading bid as OUTBID
     if (auction.highest_bidder_id) {
       await client.query(
         `UPDATE bids SET status = 'OUTBID' 
@@ -53,7 +53,7 @@ const placeBid = async (req, res, next) => {
       );
     }
 
-    // Insert new bid
+    // Inserting new bid
     const bidResult = await client.query(
       `INSERT INTO bids (auction_id, bidder_id, bid_amount, status)
        VALUES ($1, $2, $3, 'LEADING')
@@ -61,7 +61,7 @@ const placeBid = async (req, res, next) => {
       [auction_id, bidder_id, bid_amount]
     );
 
-    // Update auction with new highest bid
+    // Updating auction with new highest bid
     await client.query(
       `UPDATE auctions 
        SET current_highest_bid = $1, highest_bidder_id = $2, updated_at = NOW()
@@ -69,7 +69,7 @@ const placeBid = async (req, res, next) => {
       [bid_amount, bidder_id, auction_id]
     );
 
-    // Auto-extend auction by 60 mins if bid placed in last 60 mins
+    // Auto-extending the auction by 60 mins if bid placed in last 60 mins
     const endTime = new Date(auction.end_time);
     const now = new Date();
     const minutesLeft = (endTime - now) / (1000 * 60);
@@ -93,7 +93,7 @@ const placeBid = async (req, res, next) => {
   }
 };
 
-// GET /bids/auction/:auction_id - get all bids for an auction
+// GET /bids/auction/:auction_id - getting all bids for an auction
 const getBidsByAuction = async (req, res, next) => {
   try {
     const { auction_id } = req.params;
@@ -113,7 +113,7 @@ const getBidsByAuction = async (req, res, next) => {
   }
 };
 
-// GET /bids/my - get current user's bids
+// GET /bids/my - getting current user's bids
 const getMyBids = async (req, res, next) => {
   try {
     const bidder_id = req.user.id;
