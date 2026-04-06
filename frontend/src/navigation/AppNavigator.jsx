@@ -1,10 +1,15 @@
+import { useEffect, useState } from "react";
+import { View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import * as SecureStore from "expo-secure-store";
+
 
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import DashboardScreen from "../screens/DashboardScreen";
+import BuyerDashboardScreen from "../screens/BuyerDashboardScreen";
 import AuctionListScreen from "../screens/AuctionListScreen";
 import AuctionDetailScreen from "../screens/AuctionDetailScreen";
 import BidScreen from "../screens/BidScreen";

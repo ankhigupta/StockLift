@@ -11,21 +11,21 @@ import {
 } from "react-native";
 import api from "../services/api";
 
-export default function DashboardScreen({ navigation }) {
+export default function BuyerDashboardScreen({ navigation }) {
   const [stats, setStats] = useState(null);
-  const [auctions, setAuctions] = useState([]);
+  const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   const fetchDashboard = async () => {
     try {
-      const [statsRes, auctionsRes] = await Promise.all([
-        api.get("/dashboard/seller"),
-        api.get("/auctions?status=ACTIVE"),
+      const [statsRes, bidsRes] = await Promise.all([
+        api.get("/dashboard/buyer"),
+        api.get("/bids/my"),
       ]);
       setStats(statsRes.data);
-      setAuctions(auctionsRes.data.data || []);
+      setBids(bidsRes.data || []);
     } catch (err) {
       setError("Failed to load dashboard.");
     } finally {
@@ -45,18 +45,20 @@ export default function DashboardScreen({ navigation }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "ACTIVE": return "#D94F2B";
-      case "UPCOMING": return "#C8943A";
-      case "ENDED": return "#8A7968";
+      case "LEADING": return "#2E7D32";
+      case "OUTBID": return "#D94F2B";
+      case "WON": return "#1565C0";
+      case "LOST": return "#8A7968";
       default: return "#8A7968";
     }
   };
 
   const getStatusBg = (status) => {
     switch (status) {
-      case "ACTIVE": return "#FFF5F3";
-      case "UPCOMING": return "#FFF8EE";
-      case "ENDED": return "#F5F2EE";
+      case "LEADING": return "#F1F8E9";
+      case "OUTBID": return "#FFF5F3";
+      case "WON": return "#E3F2FD";
+      case "LOST": return "#F5F2EE";
       default: return "#F5F2EE";
     }
   };
@@ -66,10 +68,10 @@ export default function DashboardScreen({ navigation }) {
     return `₹${Number(amount).toLocaleString("en-IN")}`;
   };
 
-  const formatTimeLeft = (endTime) => {
-    if (!endTime) return "N/A";
-    const diff = new Date(endTime) - new Date();
-    if (diff <= 0) return "Ended";
+  const formatDeadline = (deadline) => {
+    if (!deadline) return "N/A";
+    const diff = new Date(deadline) - new Date();
+    if (diff <= 0) return "Expired";
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     if (hours > 24) return `${Math.floor(hours / 24)}d left`;
@@ -92,7 +94,11 @@ export default function DashboardScreen({ navigation }) {
       contentContainerStyle={{ flexGrow: 1 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D94F2B" />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#D94F2B"
+        />
       }
     >
       <StatusBar barStyle="light-content" backgroundColor="#D94F2B" />
@@ -103,8 +109,8 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.headerCircle2} />
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Good day, Seller </Text>
-            <Text style={styles.headerSub}>Here's your auction overview</Text>
+            <Text style={styles.greeting}>Good day, Buyer </Text>
+            <Text style={styles.headerSub}>Here's your bidding overview</Text>
           </View>
           <View style={styles.logoBox}>
             <Text style={styles.logoLetter}>S</Text>
@@ -122,105 +128,148 @@ export default function DashboardScreen({ navigation }) {
       {/* STATS CARDS */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Auctions</Text>
-          <Text style={styles.statNumber}>{stats?.totalAuctions || 0}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Active Now</Text>
+          <Text style={styles.statLabel}>Active Bids</Text>
           <Text style={[styles.statNumber, { color: "#D94F2B" }]}>
-            {stats?.activeAuctions || 0}
+            {stats?.activeBids || 0}
           </Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Completed</Text>
-          <Text style={styles.statNumber}>{stats?.completedAuctions || 0}</Text>
+          <Text style={styles.statLabel}>Auctions Won</Text>
+          <Text style={styles.statNumber}>
+            {stats?.wonAuctions || 0}
+          </Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Revenue</Text>
+          <Text style={styles.statLabel}>Total Spent</Text>
           <Text style={[styles.statNumber, { color: "#D94F2B", fontSize: 16 }]}>
-            {formatCurrency(stats?.totalRevenue)}
+            {formatCurrency(stats?.totalSpent)}
+          </Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Pending Payments</Text>
+          <Text style={[styles.statNumber, { color: "#C8943A" }]}>
+            {stats?.pendingPayments || 0}
           </Text>
         </View>
       </View>
 
-      {/* CREATE AUCTION BUTTON */}
+      {/* PENDING PAYMENTS ALERT */}
+      {stats?.pendingPayments > 0 && (
+        <View style={styles.alertCard}>
+          <Text style={styles.alertIcon}></Text>
+          <View style={styles.alertContent}>
+            <Text style={styles.alertTitle}>Payment deadline approaching</Text>
+            <Text style={styles.alertText}>
+              You have {stats.pendingPayments} pending payment
+              {stats.pendingPayments > 1 ? "s" : ""}. Pay within 24 hours to
+              avoid losing your won auction.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* PENDING PAYMENT DEADLINES */}
+      {stats?.pendingPaymentDeadlines?.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pending Payments</Text>
+          </View>
+          {stats.pendingPaymentDeadlines.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.paymentCard}
+              onPress={() =>
+                navigation.navigate("Payment", { auctionId: item.auctionId })
+              }
+              activeOpacity={0.85}
+            >
+              <View style={styles.paymentLeft}>
+                <Text style={styles.paymentAmount}>
+                  {formatCurrency(item.amount)}
+                </Text>
+                <Text style={styles.paymentDeadline}>
+                  ⏳ {formatDeadline(item.deadline)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.payNowButton}
+                onPress={() =>
+                  navigation.navigate("Payment", { auctionId: item.auctionId })
+                }
+              >
+                <Text style={styles.payNowText}>Pay Now</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* BROWSE AUCTIONS BUTTON */}
       <View style={styles.section}>
         <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => navigation.navigate("CreateAuction")}
+          style={styles.browseButton}
+          onPress={() => navigation.navigate("Auctions")}
           activeOpacity={0.85}
         >
-          <Text style={styles.createButtonIcon}>＋</Text>
-          <Text style={styles.createButtonText}>Create New Auction</Text>
+          <Text style={styles.browseButtonIcon}></Text>
+          <Text style={styles.browseButtonText}>Browse Live Auctions</Text>
         </TouchableOpacity>
       </View>
 
-      {/* LIVE AUCTIONS */}
+      {/* MY BIDS */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Live Auctions</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Auctions")}>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>My Recent Bids</Text>
         </View>
 
-        {auctions.length === 0 ? (
+        {bids.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No active auctions</Text>
+            <Text style={styles.emptyIcon}></Text>
+            <Text style={styles.emptyTitle}>No bids placed yet</Text>
             <Text style={styles.emptyText}>
-              Create your first auction to start selling your inventory
+              Browse live auctions and place your first bid
             </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => navigation.navigate("Auctions")}
+            >
+              <Text style={styles.emptyButtonText}>Browse Auctions</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          auctions.map((auction) => (
+          bids.slice(0, 5).map((bid) => (
             <TouchableOpacity
-              key={auction.id}
-              style={styles.auctionCard}
-              onPress={() => navigation.navigate("AuctionDetail", { auctionId: auction.id })}
+              key={bid.bidId}
+              style={styles.bidCard}
+              onPress={() =>
+                navigation.navigate("AuctionDetail", {
+                  auctionId: bid.auctionId,
+                })
+              }
               activeOpacity={0.85}
             >
-              <View style={styles.auctionCardTop}>
-                <View style={styles.auctionInfo}>
-                  <Text style={styles.auctionTitle} numberOfLines={1}>
-                    {auction.title}
-                  </Text>
-                  <Text style={styles.auctionCategory}>{auction.category}</Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusBg(auction.status) }
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    { color: getStatusColor(auction.status) }
-                  ]}>
-                    {auction.status}
-                  </Text>
-                </View>
+              <View style={styles.bidCardLeft}>
+                <Text style={styles.bidTitle} numberOfLines={1}>
+                  Auction #{bid.auctionId?.slice(0, 8)}
+                </Text>
+                <Text style={styles.bidAmount}>
+                  {formatCurrency(bid.bidAmount)}
+                </Text>
               </View>
-
-              <View style={styles.auctionCardBottom}>
-                <View style={styles.auctionStat}>
-                  <Text style={styles.auctionStatLabel}>Current Bid</Text>
-                  <Text style={styles.auctionStatValue}>
-                    {formatCurrency(auction.currentHighestBid || auction.basePrice)}
-                  </Text>
-                </View>
-                <View style={styles.auctionDivider} />
-                <View style={styles.auctionStat}>
-                  <Text style={styles.auctionStatLabel}>Base Price</Text>
-                  <Text style={styles.auctionStatValue}>
-                    {formatCurrency(auction.basePrice)}
-                  </Text>
-                </View>
-                <View style={styles.auctionDivider} />
-                <View style={styles.auctionStat}>
-                  <Text style={styles.auctionStatLabel}>Time Left</Text>
-                  <Text style={[styles.auctionStatValue, { color: "#D94F2B" }]}>
-                    {formatTimeLeft(auction.endTime)}
-                  </Text>
-                </View>
+              <View
+                style={[
+                  styles.bidStatusBadge,
+                  { backgroundColor: getStatusBg(bid.status) },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.bidStatusText,
+                    { color: getStatusColor(bid.status) },
+                  ]}
+                >
+                  {bid.status}
+                </Text>
               </View>
             </TouchableOpacity>
           ))
@@ -349,6 +398,37 @@ const styles = StyleSheet.create({
     color: "#1A1208",
   },
 
+  // alert card
+  alertCard: {
+    flexDirection: "row",
+    backgroundColor: "#FFF8EE",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F5D78E",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  alertIcon: {
+    fontSize: 20,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#7B5800",
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 11,
+    color: "#A07830",
+    lineHeight: 16,
+  },
+
   // section
   section: {
     paddingHorizontal: 16,
@@ -365,14 +445,46 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1A1208",
   },
-  seeAll: {
-    fontSize: 13,
-    color: "#D94F2B",
+
+  // payment card
+  paymentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  paymentLeft: {
+    gap: 4,
+  },
+  paymentAmount: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1A1208",
+  },
+  paymentDeadline: {
+    fontSize: 12,
+    color: "#C8943A",
     fontWeight: "600",
   },
+  payNowButton: {
+    backgroundColor: "#D94F2B",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+  },
+  payNowText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 
-  // create button
-  createButton: {
+  // browse button
+  browseButton: {
     backgroundColor: "#D94F2B",
     borderRadius: 14,
     paddingVertical: 16,
@@ -382,12 +494,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 24,
   },
-  createButtonIcon: {
-    fontSize: 20,
-    color: "#FFFFFF",
-    fontWeight: "700",
+  browseButtonIcon: {
+    fontSize: 18,
   },
-  createButtonText: {
+  browseButtonText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
@@ -417,73 +527,53 @@ const styles = StyleSheet.create({
     color: "#8A7968",
     textAlign: "center",
     lineHeight: 20,
+    marginBottom: 16,
+  },
+  emptyButton: {
+    backgroundColor: "#D94F2B",
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+  },
+  emptyButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 
-  // auction card
-  auctionCard: {
+  // bid card
+  bidCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.06)",
-  },
-  auctionCardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
+    alignItems: "center",
   },
-  auctionInfo: {
-    flex: 1,
-    marginRight: 10,
+  bidCardLeft: {
+    gap: 4,
   },
-  auctionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1A1208",
-    marginBottom: 3,
-  },
-  auctionCategory: {
-    fontSize: 12,
+  bidTitle: {
+    fontSize: 13,
     color: "#8A7968",
   },
-  statusBadge: {
+  bidAmount: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A1208",
+  },
+  bidStatusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
   },
-  statusText: {
+  bidStatusText: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
-  auctionCardBottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 0.5,
-    borderTopColor: "rgba(0,0,0,0.06)",
-    paddingTop: 12,
-  },
-  auctionStat: {
-    flex: 1,
-    alignItems: "center",
-  },
-  auctionStatLabel: {
-    fontSize: 10,
-    color: "#8A7968",
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  auctionStatValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1A1208",
-  },
-  auctionDivider: {
-    width: 0.5,
-    height: 30,
-    backgroundColor: "rgba(0,0,0,0.08)",
-  },
 });
+
