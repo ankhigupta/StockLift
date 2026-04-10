@@ -9,23 +9,48 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import api from "../services/api";
 
 export default function DashboardScreen({ navigation }) {
+  const [role, setRole] = useState(null);
   const [stats, setStats] = useState(null);
-  const [auctions, setAuctions] = useState([]);
+  const [listData, setListData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (userRole) => {
     try {
-      const [statsRes, auctionsRes] = await Promise.all([
-        api.get("/dashboard/seller"),
-        api.get("/auctions?status=ACTIVE"),
-      ]);
-      setStats(statsRes.data);
-      setAuctions(auctionsRes.data.data || []);
+      if (userRole === "SELLER") {
+        const [statsRes, auctionsRes] = await Promise.all([
+          api.get("/dashboard/seller"),
+          api.get("/auctions?status=ACTIVE"),
+        ]);
+
+        const d = statsRes.data.dashboard;
+      setStats({
+        totalAuctions: d.total_auctions,
+        activeAuctions: d.auctions_by_status?.find(s => s.status === "ACTIVE")?.count || 0,
+        completedAuctions: d.auctions_by_status?.find(s => s.status === "ENDED")?.count || 0,
+        totalRevenue: d.total_revenue,
+      });
+      setListData(auctionsRes.data.auctions || []);
+      } else {
+        const [statsRes, bidsRes] = await Promise.all([
+          api.get("/dashboard/buyer"),
+          api.get("/bids/my"),
+        ]);
+
+        const d = statsRes.data.dashboard;
+      setStats({
+        activeBids: d.active_bids?.length || 0,
+        wonAuctions: d.auctions_won,
+        totalSpent: d.total_spent,
+        pendingPayments: d.pending_orders?.length || 0,
+      });
+      setListData(bidsRes.data.bids || []);
+      }
     } catch (err) {
       setError("Failed to load dashboard.");
     } finally {
@@ -35,30 +60,22 @@ export default function DashboardScreen({ navigation }) {
   };
 
   useEffect(() => {
-    fetchDashboard();
+    const init = async () => {
+      try {
+        const storedRole = await SecureStore.getItemAsync("userRole");
+        setRole(storedRole);
+        await fetchDashboard(storedRole);
+      } catch (err) {
+        setError("Failed to load dashboard.");
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchDashboard();
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "ACTIVE": return "#D94F2B";
-      case "UPCOMING": return "#C8943A";
-      case "ENDED": return "#8A7968";
-      default: return "#8A7968";
-    }
-  };
-
-  const getStatusBg = (status) => {
-    switch (status) {
-      case "ACTIVE": return "#FFF5F3";
-      case "UPCOMING": return "#FFF8EE";
-      case "ENDED": return "#F5F2EE";
-      default: return "#F5F2EE";
-    }
+    fetchDashboard(role);
   };
 
   const formatCurrency = (amount) => {
@@ -77,6 +94,30 @@ export default function DashboardScreen({ navigation }) {
     return `${minutes}m left`;
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "ACTIVE": return "#D94F2B";
+      case "UPCOMING": return "#C8943A";
+      case "LEADING": return "#2E7D32";
+      case "OUTBID": return "#D94F2B";
+      case "WON": return "#1565C0";
+      case "LOST": return "#8A7968";
+      default: return "#8A7968";
+    }
+  };
+
+  const getStatusBg = (status) => {
+    switch (status) {
+      case "ACTIVE": return "#FFF5F3";
+      case "UPCOMING": return "#FFF8EE";
+      case "LEADING": return "#F1F8E9";
+      case "OUTBID": return "#FFF5F3";
+      case "WON": return "#E3F2FD";
+      case "LOST": return "#F5F2EE";
+      default: return "#F5F2EE";
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -86,6 +127,149 @@ export default function DashboardScreen({ navigation }) {
     );
   }
 
+  // ─────────────────────────────────────────
+  // SELLER DASHBOARD
+  // ─────────────────────────────────────────
+  if (role === "SELLER") {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D94F2B" />
+        }
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#D94F2B" />
+
+        {/* HEADER */}
+        <View style={styles.header}>
+          <View style={styles.headerCircle} />
+          <View style={styles.headerCircle2} />
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>Good day, Seller 👋</Text>
+              <Text style={styles.headerSub}>Here's your auction overview</Text>
+            </View>
+            <View style={styles.logoBox}>
+              <Text style={styles.logoLetter}>S</Text>
+            </View>
+          </View>
+        </View>
+
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+          </View>
+        ) : null}
+
+        {/* STATS */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Total Auctions</Text>
+            <Text style={styles.statNumber}>{stats?.totalAuctions || 0}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Active Now</Text>
+            <Text style={[styles.statNumber, { color: "#D94F2B" }]}>
+              {stats?.activeAuctions || 0}
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statNumber}>{stats?.completedAuctions || 0}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Total Revenue</Text>
+            <Text style={[styles.statNumber, { color: "#D94F2B", fontSize: 16 }]}>
+              {formatCurrency(stats?.totalRevenue)}
+            </Text>
+          </View>
+        </View>
+
+        {/* CREATE BUTTON */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate("CreateAuction")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.actionButtonText}>＋  Create New Auction</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* LIVE AUCTIONS LIST */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Live Auctions</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Auctions")}>
+              <Text style={styles.seeAll}>See all</Text>
+            </TouchableOpacity>
+          </View>
+
+          {listData.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>📦</Text>
+              <Text style={styles.emptyTitle}>No active auctions</Text>
+              <Text style={styles.emptyText}>
+                Create your first auction to start selling your inventory
+              </Text>
+            </View>
+          ) : (
+            listData.map((auction) => (
+              <TouchableOpacity
+                key={auction.id}
+                style={styles.auctionCard}
+                onPress={() => navigation.navigate("AuctionDetail", { auctionId: auction.id })}
+                activeOpacity={0.85}
+              >
+                <View style={styles.auctionCardTop}>
+                  <View style={styles.auctionInfo}>
+                    <Text style={styles.auctionTitle} numberOfLines={1}>
+                      {auction.title}
+                    </Text>
+                    <Text style={styles.auctionCategory}>{auction.category}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusBg(auction.status) }]}>
+                    <Text style={[styles.statusText, { color: getStatusColor(auction.status) }]}>
+                      {auction.status}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.auctionCardBottom}>
+                  <View style={styles.auctionStat}>
+                    <Text style={styles.auctionStatLabel}>Current Bid</Text>
+                    <Text style={styles.auctionStatValue}>
+                      {formatCurrency(auction.currentHighestBid || auction.basePrice)}
+                    </Text>
+                  </View>
+                  <View style={styles.auctionDivider} />
+                  <View style={styles.auctionStat}>
+                    <Text style={styles.auctionStatLabel}>Base Price</Text>
+                    <Text style={styles.auctionStatValue}>
+                      {formatCurrency(auction.basePrice)}
+                    </Text>
+                  </View>
+                  <View style={styles.auctionDivider} />
+                  <View style={styles.auctionStat}>
+                    <Text style={styles.auctionStatLabel}>Time Left</Text>
+                    <Text style={[styles.auctionStatValue, { color: "#D94F2B" }]}>
+                      {formatTimeLeft(auction.endTime)}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // BUYER DASHBOARD
+  // ─────────────────────────────────────────
   return (
     <ScrollView
       style={styles.container}
@@ -97,14 +281,14 @@ export default function DashboardScreen({ navigation }) {
     >
       <StatusBar barStyle="light-content" backgroundColor="#D94F2B" />
 
-      {/* ORANGE HEADER */}
+      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerCircle} />
         <View style={styles.headerCircle2} />
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Good day, Seller </Text>
-            <Text style={styles.headerSub}>Here's your auction overview</Text>
+            <Text style={styles.greeting}>Good day, Buyer 👋</Text>
+            <Text style={styles.headerSub}>Here's your bidding overview</Text>
           </View>
           <View style={styles.logoBox}>
             <Text style={styles.logoLetter}>S</Text>
@@ -112,113 +296,97 @@ export default function DashboardScreen({ navigation }) {
         </View>
       </View>
 
-      {/* error banner */}
       {error ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
         </View>
       ) : null}
 
-      {/* STATS CARDS */}
+      {/* STATS */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Auctions</Text>
-          <Text style={styles.statNumber}>{stats?.totalAuctions || 0}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Active Now</Text>
+          <Text style={styles.statLabel}>Active Bids</Text>
           <Text style={[styles.statNumber, { color: "#D94F2B" }]}>
-            {stats?.activeAuctions || 0}
+            {stats?.activeBids || 0}
           </Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Completed</Text>
-          <Text style={styles.statNumber}>{stats?.completedAuctions || 0}</Text>
+          <Text style={styles.statLabel}>Auctions Won</Text>
+          <Text style={styles.statNumber}>{stats?.wonAuctions || 0}</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Revenue</Text>
+          <Text style={styles.statLabel}>Total Spent</Text>
           <Text style={[styles.statNumber, { color: "#D94F2B", fontSize: 16 }]}>
-            {formatCurrency(stats?.totalRevenue)}
+            {formatCurrency(stats?.totalSpent)}
+          </Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Pending Payments</Text>
+          <Text style={[styles.statNumber, { color: "#C8943A" }]}>
+            {stats?.pendingPayments || 0}
           </Text>
         </View>
       </View>
 
-      {/* CREATE AUCTION BUTTON */}
+      {/* PENDING PAYMENT ALERT */}
+      {stats?.pendingPayments > 0 && (
+        <View style={styles.alertCard}>
+          <Text style={styles.alertIcon}>⏰</Text>
+          <View style={styles.alertContent}>
+            <Text style={styles.alertTitle}>Payment deadline approaching</Text>
+            <Text style={styles.alertText}>
+              You have {stats.pendingPayments} pending payment
+              {stats.pendingPayments > 1 ? "s" : ""}. Pay within 24 hours.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* BROWSE BUTTON */}
       <View style={styles.section}>
         <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => navigation.navigate("CreateAuction")}
+          style={styles.actionButton}
+          onPress={() => navigation.navigate("Auctions")}
           activeOpacity={0.85}
         >
-          <Text style={styles.createButtonIcon}>＋</Text>
-          <Text style={styles.createButtonText}>Create New Auction</Text>
+          <Text style={styles.actionButtonText}>🔍  Browse Live Auctions</Text>
         </TouchableOpacity>
       </View>
 
-      {/* LIVE AUCTIONS */}
+      {/* MY BIDS LIST */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Live Auctions</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Auctions")}>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>My Recent Bids</Text>
         </View>
 
-        {auctions.length === 0 ? (
+        {listData.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No active auctions</Text>
+            <Text style={styles.emptyIcon}>🏷️</Text>
+            <Text style={styles.emptyTitle}>No bids placed yet</Text>
             <Text style={styles.emptyText}>
-              Create your first auction to start selling your inventory
+              Browse live auctions and place your first bid
             </Text>
           </View>
         ) : (
-          auctions.map((auction) => (
+          listData.slice(0, 5).map((bid) => (
             <TouchableOpacity
-              key={auction.id}
+              key={bid.bidId}
               style={styles.auctionCard}
-              onPress={() => navigation.navigate("AuctionDetail", { auctionId: auction.id })}
+              onPress={() => navigation.navigate("AuctionDetail", { auctionId: bid.auctionId })}
               activeOpacity={0.85}
             >
               <View style={styles.auctionCardTop}>
                 <View style={styles.auctionInfo}>
-                  <Text style={styles.auctionTitle} numberOfLines={1}>
-                    {auction.title}
+                  <Text style={styles.auctionTitle}>
+                    Auction #{bid.auctionId?.slice(0, 8)}
                   </Text>
-                  <Text style={styles.auctionCategory}>{auction.category}</Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusBg(auction.status) }
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    { color: getStatusColor(auction.status) }
-                  ]}>
-                    {auction.status}
+                  <Text style={styles.auctionCategory}>
+                    {formatCurrency(bid.bidAmount)}
                   </Text>
                 </View>
-              </View>
-
-              <View style={styles.auctionCardBottom}>
-                <View style={styles.auctionStat}>
-                  <Text style={styles.auctionStatLabel}>Current Bid</Text>
-                  <Text style={styles.auctionStatValue}>
-                    {formatCurrency(auction.currentHighestBid || auction.basePrice)}
-                  </Text>
-                </View>
-                <View style={styles.auctionDivider} />
-                <View style={styles.auctionStat}>
-                  <Text style={styles.auctionStatLabel}>Base Price</Text>
-                  <Text style={styles.auctionStatValue}>
-                    {formatCurrency(auction.basePrice)}
-                  </Text>
-                </View>
-                <View style={styles.auctionDivider} />
-                <View style={styles.auctionStat}>
-                  <Text style={styles.auctionStatLabel}>Time Left</Text>
-                  <Text style={[styles.auctionStatValue, { color: "#D94F2B" }]}>
-                    {formatTimeLeft(auction.endTime)}
+                <View style={[styles.statusBadge, { backgroundColor: getStatusBg(bid.status) }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(bid.status) }]}>
+                    {bid.status}
                   </Text>
                 </View>
               </View>
@@ -248,8 +416,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#8A7968",
   },
-
-  // header
   header: {
     backgroundColor: "#D94F2B",
     paddingTop: 60,
@@ -307,8 +473,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
   },
-
-  // error
   errorBanner: {
     backgroundColor: "#FFE5E5",
     margin: 16,
@@ -321,8 +485,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#C0392B",
   },
-
-  // stats
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -348,8 +510,35 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#1A1208",
   },
-
-  // section
+  alertCard: {
+    flexDirection: "row",
+    backgroundColor: "#FFF8EE",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F5D78E",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  alertIcon: {
+    fontSize: 20,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#7B5800",
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 11,
+    color: "#A07830",
+    lineHeight: 16,
+  },
   section: {
     paddingHorizontal: 16,
     marginBottom: 8,
@@ -370,30 +559,19 @@ const styles = StyleSheet.create({
     color: "#D94F2B",
     fontWeight: "600",
   },
-
-  // create button
-  createButton: {
+  actionButton: {
     backgroundColor: "#D94F2B",
     borderRadius: 14,
     paddingVertical: 16,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
     marginBottom: 24,
   },
-  createButtonIcon: {
-    fontSize: 20,
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  createButtonText: {
+  actionButtonText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
   },
-
-  // empty state
   emptyCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
@@ -418,8 +596,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-
-  // auction card
   auctionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,

@@ -9,7 +9,6 @@ import * as SecureStore from "expo-secure-store";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import DashboardScreen from "../screens/DashboardScreen";
-import BuyerDashboardScreen from "../screens/BuyerDashboardScreen";
 import AuctionListScreen from "../screens/AuctionListScreen";
 import AuctionDetailScreen from "../screens/AuctionDetailScreen";
 import BidScreen from "../screens/BidScreen";
