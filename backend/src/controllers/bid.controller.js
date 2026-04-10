@@ -84,6 +84,35 @@ const placeBid = async (req, res, next) => {
 
     await client.query("COMMIT");
 
+
+    // Emitting real-time bid event to everyone watching this auction
+    try {
+    const io = getIO();
+
+    // Sending to everyone in the auction room
+    io.to(`auction:${auction_id}`).emit("bid:new", {
+        auction_id,
+        bid: bidResult.rows[0],
+        current_highest_bid: bid_amount,
+        bidder_name: req.user.email,
+    });
+
+    // If auction was auto-extended, notifying everyone of new end time
+    if (minutesLeft <= 60) {
+        const updatedAuction = await pool.query(
+        "SELECT end_time FROM auctions WHERE id = $1",
+        [auction_id]
+        );
+        io.to(`auction:${auction_id}`).emit("auction:extended", {
+        auction_id,
+        new_end_time: updatedAuction.rows[0].end_time,
+        });
+    }
+    } catch (err) {
+    // Don't fail the request if socket emission fails
+    console.error("Socket emission error:", err.message);
+    }
+
     res.status(201).json({ success: true, bid: bidResult.rows[0] });
   } catch (err) {
     await client.query("ROLLBACK");

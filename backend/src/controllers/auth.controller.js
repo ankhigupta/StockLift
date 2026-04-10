@@ -77,7 +77,7 @@ const login = async (req, res, next) => {
       success: true,
       accessToken,
       refreshToken,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role:user.role },
     });
   } catch (err) {
     next(err);
@@ -88,7 +88,7 @@ const login = async (req, res, next) => {
 const me = async (req, res, next) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, email, phone, created_at FROM users WHERE id = $1",
+      "SELECT id, name, email, phone ,role, created_at FROM users WHERE id = $1",
       [req.user.id]
     );
     res.json({ success: true, user: result.rows[0] });

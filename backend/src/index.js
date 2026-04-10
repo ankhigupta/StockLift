@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 const morgan = require("morgan");
 const { initCronJobs } = require("./jobs/auction.jobs");
@@ -7,8 +8,10 @@ require("dotenv").config();
 const { connectDB, pool } = require("./db/index");
 const routes = require("./routes/index");
 const { errorHandler, notFound } = require("./middleware/error.middleware");
+const { initSocket } = require("./socket/socket");
 
 const app = express();
+const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 8000;
 
 app.use(cors());
@@ -36,9 +39,14 @@ app.use("/api/v1", routes);
 app.use(notFound);
 app.use(errorHandler);
 
-connectDB();
-initCronJobs();
+const start = async () => {
+  await connectDB();
+  await initSocket(httpServer);
+  initCronJobs();
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  httpServer.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+start();
