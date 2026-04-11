@@ -21,7 +21,7 @@ const generateRefreshToken = (userId) => {
 };
 
 // registering a new user
-const register = async ({ name, email, password, role }) => {
+const register = async ({ name, email, password,phone, role }) => {
   // checking if email already exists
   const existingUser = await pool.query(
     "SELECT id FROM users WHERE email = $1",
@@ -39,8 +39,8 @@ const register = async ({ name, email, password, role }) => {
 
   // inserting the new user into the database
   const result = await pool.query(
-    `INSERT INTO users (name, email, password, role)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (name, email, password, phone, role)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING id, name, email, role, created_at`,
     [name, email, hashedPassword, role]
   );
