@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
-const { createClient } = require("ioredis");
+const Redis = require("ioredis");
 const jwt = require("jsonwebtoken");
 
 let io;
@@ -15,10 +15,11 @@ const initSocket = async (httpServer) => {
   });
 
   // Connecting to Upstash Redis for Pub/Sub
-  const pubClient = createClient(process.env.UPSTASH_REDIS_URL);
+  const pubClient = new Redis(process.env.UPSTASH_REDIS_URL);
   const subClient = pubClient.duplicate();
 
-  await Promise.all([pubClient.connect(), subClient.connect()]);
+  pubClient.on("error", (err) => console.error("Redis pubClient error:", err));
+  subClient.on("error", (err) => console.error("Redis subClient error:", err));
 
   // Attaching Redis adapter — this is what makes multi-server broadcasting work
   io.adapter(createAdapter(pubClient, subClient));
