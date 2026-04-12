@@ -40,6 +40,7 @@ const register = async (req, res, next) => {
 
     const user = result.rows[0];
     const { accessToken, refreshToken } = generateTokens(user);
+    await pool.query("UPDATE users SET refresh_token = $1 WHERE id = $2", [refreshToken, user.id]);
 
     res.status(201).json({
       success: true,
@@ -72,6 +73,7 @@ const login = async (req, res, next) => {
     }
 
     const { accessToken, refreshToken } = generateTokens(user);
+    await pool.query("UPDATE users SET refresh_token = $1 WHERE id = $2", [refreshToken, user.id]);
 
     res.json({
       success: true,
@@ -125,8 +127,36 @@ const refresh = async (req, res, next) => {
 };
 
 // POST /auth/logout
-const logout = async (req, res) => {
-  res.json({ success: true, message: "Logged out successfully" });
+const logout = async (req, res, next) => {
+  try {
+    await pool.query(
+      "UPDATE users SET refresh_token = NULL WHERE id = $1",
+      [req.user.id]
+    );
+    res.json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    next(err);
+  }
 };
 
-module.exports = { register, login, me, refresh, logout };
+const saveFcmToken = async (req, res, next) => {
+  try {
+    const { fcm_token } = req.body;
+    const user_id = req.user.id;
+
+    if (!fcm_token) {
+      return res.status(400).json({ success: false, message: "fcm_token is required" });
+    }
+
+    await pool.query(
+      "UPDATE users SET fcm_token = $1 WHERE id = $2",
+      [fcm_token, user_id]
+    );
+
+    res.json({ success: true, message: "FCM token saved" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { register, login, me, refresh, logout , saveFcmToken};

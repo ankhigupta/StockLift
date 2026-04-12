@@ -9,6 +9,7 @@ const { connectDB, pool } = require("./db/index");
 const routes = require("./routes/index");
 const { errorHandler, notFound } = require("./middleware/error.middleware");
 const { initSocket } = require("./socket/socket");
+const { initFirebase } = require("./config/firebase");
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -43,6 +44,7 @@ const start = async () => {
   await connectDB();
   await initSocket(httpServer);
   initCronJobs();
+  initFirebase();
 
   httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
