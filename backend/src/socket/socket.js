@@ -89,7 +89,8 @@ const initSocket = async (httpServer) => {
 // Getting the io instance from anywhere in the app
 const getIO = () => {
   if (!io) {
-    throw new Error("Socket.IO not initialized");
+    console.error("Socket.IO not initialized yet");
+    return null;
   }
   return io;
 };

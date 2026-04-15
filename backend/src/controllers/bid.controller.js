@@ -1,4 +1,5 @@
 const { pool } = require("../db/index");
+//const { getIO } = require("../socket/socket");
 
 // POST /bids - placing a bid
 const placeBid = async (req, res, next) => {
@@ -87,6 +88,7 @@ const placeBid = async (req, res, next) => {
 
     // Emitting real-time bid event to everyone watching this auction
     try {
+    const { getIO } = require("../socket/socket");
     const io = getIO();
 
     // Sending to everyone in the auction room
