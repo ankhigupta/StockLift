@@ -19,7 +19,7 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Auctions" component={AuctionListScreen} />
     </Tab.Navigator>
@@ -33,9 +33,9 @@ export default function AppNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} options={{headerShown: false}}/>
         <Stack.Screen name="Register" component={RegisterScreen} options={{headerShown: false}}/>
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
-        <Stack.Screen name="AuctionDetail" component={AuctionDetailScreen} />
-        <Stack.Screen name="Bid" component={BidScreen} />
-        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="AuctionDetail" component={AuctionDetailScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="Bid" component={BidScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
