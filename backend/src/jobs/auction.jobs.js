@@ -1,5 +1,6 @@
 const cron = require("node-cron");
 const { pool } = require("../db/index");
+const { sendNotification, sendMulticastNotification } = require("../config/firebase");
 
 // Runs every minute — checks for auctions that should become ACTIVE
 const startScheduledAuctions = async () => {
