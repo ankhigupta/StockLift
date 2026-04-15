@@ -63,7 +63,7 @@ export default function AuctionDetailScreen({ route, navigation }) {
 
       // connect to socket
       if (token) {
-        const socket = io("http://localhost:8000", {
+        const socket = io("http://192.168.x.x:8000", {
           auth: { token },
           transports: ["websocket"],
         });

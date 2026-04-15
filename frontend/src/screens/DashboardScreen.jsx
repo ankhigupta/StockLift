@@ -240,21 +240,21 @@ export default function DashboardScreen({ navigation }) {
                   <View style={styles.auctionStat}>
                     <Text style={styles.auctionStatLabel}>Current Bid</Text>
                     <Text style={styles.auctionStatValue}>
-                      {formatCurrency(auction.currentHighestBid || auction.basePrice)}
+                      {formatCurrency(auction.current_highest_bid || auction.base_price)}
                     </Text>
                   </View>
                   <View style={styles.auctionDivider} />
                   <View style={styles.auctionStat}>
                     <Text style={styles.auctionStatLabel}>Base Price</Text>
                     <Text style={styles.auctionStatValue}>
-                      {formatCurrency(auction.basePrice)}
+                      {formatCurrency(auction.base_price)}
                     </Text>
                   </View>
                   <View style={styles.auctionDivider} />
                   <View style={styles.auctionStat}>
                     <Text style={styles.auctionStatLabel}>Time Left</Text>
                     <Text style={[styles.auctionStatValue, { color: "#D94F2B" }]}>
-                      {formatTimeLeft(auction.endTime)}
+                      {formatTimeLeft(auction.end_time)}
                     </Text>
                   </View>
                 </View>
@@ -370,18 +370,18 @@ export default function DashboardScreen({ navigation }) {
         ) : (
           listData.slice(0, 5).map((bid) => (
             <TouchableOpacity
-              key={bid.bidId}
+              key={bid.id}//changes in bid.bidId
               style={styles.auctionCard}
-              onPress={() => navigation.navigate("AuctionDetail", { auctionId: bid.auctionId })}
+              onPress={() => navigation.navigate("AuctionDetail", { auctionId: bid.auction_id })}
               activeOpacity={0.85}
             >
               <View style={styles.auctionCardTop}>
                 <View style={styles.auctionInfo}>
                   <Text style={styles.auctionTitle}>
-                    Auction #{bid.auctionId?.slice(0, 8)}
+                    Auction #{bid.auction_id?.slice(0, 8)}
                   </Text>
                   <Text style={styles.auctionCategory}>
-                    {formatCurrency(bid.bidAmount)}
+                    {formatCurrency(bid.bid_amount)}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusBg(bid.status) }]}>
