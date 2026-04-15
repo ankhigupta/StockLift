@@ -225,8 +225,10 @@ const promoteOrder = async (req, res, next) => {
 
     // Updating bid statuses
     await client.query(
-      "UPDATE bids SET status = 'LOST' WHERE id = $1",
-      [order.buyer_id]
+      //new change
+      `UPDATE bids SET status = 'LOST' WHERE id = $1,
+      WHERE auction_id=$1 AND bidder_id=$2 AND status="WON"`
+      [order.auction_id,order.buyer_id]
     );
     await client.query(
       "UPDATE bids SET status = 'WON' WHERE id = $1",
