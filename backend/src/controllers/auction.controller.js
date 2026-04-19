@@ -3,18 +3,33 @@ const { pool } = require("../db/index");
 // POST /auctions - seller creates auction
 const createAuction = async (req, res, next) => {
   try {
-    const { title, description, category, base_price, start_time, end_time } = req.body;
+    const { 
+      title, description, category, base_price, 
+      start_time, end_time, images, quantity, 
+      location, condition, min_bid_increment 
+    } = req.body;
     const seller_id = req.user.id;
 
     if (!title || !base_price || !start_time || !end_time) {
-      return res.status(400).json({ success: false, message: "title, base_price, start_time and end_time are required" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "title, base_price, start_time and end_time are required" 
+      });
     }
 
     const result = await pool.query(
-      `INSERT INTO auctions (title, description, category, base_price, seller_id, start_time, end_time)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [title, description, category, base_price, seller_id, start_time, end_time]
+      `INSERT INTO auctions (
+        title, description, category, base_price, seller_id, 
+        start_time, end_time, images, quantity, location, 
+        condition, min_bid_increment
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *`,
+      [
+        title, description, category, base_price, seller_id,
+        start_time, end_time, images || [], quantity || 1,
+        location, condition || 'NEW', min_bid_increment || 100
+      ]
     );
 
     res.status(201).json({ success: true, auction: result.rows[0] });

@@ -8,7 +8,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import { createPaymentOrder, verifyPayment } from "../services/payment.services";
+import { createPaymentOrder, verifyPayment } from "../services/payment.service";
 import { getOrderById } from "../services/order.service";
 
 export default function PaymentScreen({ route, navigation }) {
