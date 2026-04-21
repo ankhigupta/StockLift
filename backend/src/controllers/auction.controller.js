@@ -23,7 +23,7 @@ const createAuction = async (req, res, next) => {
         start_time, end_time, images, quantity, location, 
         condition, min_bid_increment
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10, $11, $12)
       RETURNING *`,
       [
         title, description, category, base_price, seller_id,

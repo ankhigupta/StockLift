@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import * as SecureStore from "expo-secure-store";
 
-
+import CreateAuctionScreen from "../screens/CreateAuctionScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import DashboardScreen from "../screens/DashboardScreen";
@@ -36,6 +36,8 @@ export default function AppNavigator() {
         <Stack.Screen name="AuctionDetail" component={AuctionDetailScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="Bid" component={BidScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="CreateAuction" component={CreateAuctionScreen} options={{ headerShown: false }}
+/>
       </Stack.Navigator>
     </NavigationContainer>
   );
