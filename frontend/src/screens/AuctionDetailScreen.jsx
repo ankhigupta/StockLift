@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { Image, FlatList } from "react-native";
 import {
   View,
   Text,
@@ -9,9 +11,9 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  RefreshControl,
-  Platform,
+  RefreshControl
 } from "react-native";
+
 import * as SecureStore from "expo-secure-store";
 import { getAuctionById } from "../services/auction.service";
 import { getBidsByAuction } from "../services/bid.service";
@@ -199,7 +201,9 @@ export default function AuctionDetailScreen({ route, navigation }) {
   const isActive = auction.status === "ACTIVE";
 
   return (
-    <View style={styles.container}>
+  <KeyboardAvoidingView 
+    style={styles.container}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <StatusBar barStyle="light-content" backgroundColor="#D94F2B" />
 
       {/* HEADER */}
@@ -220,6 +224,7 @@ export default function AuctionDetailScreen({ route, navigation }) {
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D94F2B" />
         }
@@ -273,6 +278,27 @@ export default function AuctionDetailScreen({ route, navigation }) {
             </Text>
           </View>
         </View>
+        
+      {/* Images Section */}
+        {auction.images && auction.images.length > 0 && (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 16 }}>
+            {auction.images.map((uri, index) => (
+              <Image
+                key={index}
+                source={{ uri }}
+                style={{
+                  width: 300,
+                  height: 200,
+                  borderRadius: 12,
+                  marginRight: 10,
+                }}
+              />
+            ))}
+          </ScrollView>
+        )}
 
         {/* DESCRIPTION */}
         <View style={styles.section}>
@@ -414,6 +440,8 @@ export default function AuctionDetailScreen({ route, navigation }) {
                 }}
                 keyboardType="numeric"
                 autoFocus
+                returnKeyType="done"   
+                onSubmitEditing={Keyboard.dismiss}
               />
             </View>
 
@@ -445,7 +473,7 @@ export default function AuctionDetailScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+   </KeyboardAvoidingView>
   );
 }
 
