@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS auctions (
   current_highest_bid DECIMAL(12,2) DEFAULT 0,
   highest_bidder_id UUID REFERENCES users(id),
   status VARCHAR(50) DEFAULT 'UPCOMING' CHECK (status IN ('UPCOMING', 'ACTIVE', 'ENDED', 'SOLD', 'EXPIRED')),
-  start_time TIMESTAMP NOT NULL,
-  end_time TIMESTAMP NOT NULL,
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ NOT NULL
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

@@ -8,6 +8,7 @@ const createAuction = async (req, res, next) => {
       start_time, end_time, images, quantity, 
       location, condition, min_bid_increment 
     } = req.body;
+
     const seller_id = req.user.id;
 
     if (!title || !base_price || !start_time || !end_time) {
@@ -16,6 +17,10 @@ const createAuction = async (req, res, next) => {
         message: "title, base_price, start_time and end_time are required" 
       });
     }
+
+    // FORCING UTC conversion here
+    const startUTC = new Date(start_time).toISOString();
+    const endUTC = new Date(end_time).toISOString();
 
     const result = await pool.query(
       `INSERT INTO auctions (
@@ -27,7 +32,7 @@ const createAuction = async (req, res, next) => {
       RETURNING *`,
       [
         title, description, category, base_price, seller_id,
-        start_time, end_time, images || [], quantity || 1,
+        startUTC, endUTC, images || [], quantity || 1,
         location, condition || 'NEW', min_bid_increment || 100
       ]
     );

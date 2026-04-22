@@ -123,16 +123,26 @@ export default function AuctionDetailScreen({ route, navigation }) {
     return `₹${Number(amount).toLocaleString("en-IN")}`;
   };
 
-  const formatTimeLeft = (endTime) => {
-    if (!endTime) return "N/A";
-    const diff = new Date(endTime) - new Date();
-    if (diff <= 0) return "Ended";
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    if (hours > 24) return `${Math.floor(hours / 24)}d left`;
-    if (hours > 0) return `${hours}h ${minutes}m left`;
-    return `${minutes}m left`;
-  };
+const formatTimeLeft = (endTime) => {
+  if (!endTime) return "N/A";
+
+  const end = new Date(endTime); 
+  const now = new Date();
+
+  const diff = end - now;
+  if (diff <= 0) return "Ended";
+
+  const totalMinutes = Math.floor(diff / (1000 * 60));
+  const totalHours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  const hours = totalHours % 24;
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (totalHours > 0) return `${totalHours}h ${minutes}m left`;
+  return `${minutes}m left`;
+};
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "N/A";
