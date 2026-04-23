@@ -3,8 +3,8 @@ import { View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
-
 import CreateAuctionScreen from "../screens/CreateAuctionScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -19,7 +19,27 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: "#D94F2B",
+        tabBarInactiveTintColor: "#8A7968",
+        tabBarStyle: {
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 0.5,
+          borderTopColor: "rgba(0,0,0,0.08)",
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === "Dashboard") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "Auctions") {
+            iconName = focused ? "pricetag" : "pricetag-outline";
+          }
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Auctions" component={AuctionListScreen} />
     </Tab.Navigator>
@@ -30,14 +50,13 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} options={{headerShown: false}}/>
-        <Stack.Screen name="Register" component={RegisterScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
-        <Stack.Screen name="AuctionDetail" component={AuctionDetailScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="Bid" component={BidScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="AuctionDetail" component={AuctionDetailScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Bid" component={BidScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="CreateAuction" component={CreateAuctionScreen} options={{ headerShown: false }}
-/>
+        <Stack.Screen name="CreateAuction" component={CreateAuctionScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
