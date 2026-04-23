@@ -155,6 +155,19 @@ const formatTimeLeft = (endTime) => {
     });
   };
 
+const formatBidTime = (dateStr) => {
+  if (!dateStr) return "";
+
+  return new Date(dateStr).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
   const handlePlaceBid = async () => {
     setBidError("");
     setBidSuccess("");
@@ -187,7 +200,7 @@ const formatTimeLeft = (endTime) => {
   };
 
   const minBidAmount = auction
-    ? parseFloat(auction.current_highest_bid || auction.base_price) + 1
+    ? parseFloat(auction.current_highest_bid || auction.base_price) + parseFloat(auction.min_bid_increment || 100)
     : 0;
 
   if (loading) {
@@ -210,6 +223,7 @@ const formatTimeLeft = (endTime) => {
   const isSeller = auction.seller_id === userId;
   const isActive = auction.status === "ACTIVE";
 
+ 
   return (
   <KeyboardAvoidingView 
     style={styles.container}
@@ -352,6 +366,9 @@ const formatTimeLeft = (endTime) => {
             </View>
           ) : (
             bids.map((bid, index) => (
+              console.log("RAW:", bid.created_at),
+              console.log("PARSED:", new Date(bid.created_at)),
+
               <View key={bid.id} style={styles.bidRow}>
                 <View style={styles.bidAvatar}>
                   <Text style={styles.bidAvatarText}>
@@ -361,10 +378,7 @@ const formatTimeLeft = (endTime) => {
                 <View style={styles.bidInfo}>
                   <Text style={styles.bidName}>{bid.bidder_name}</Text>
                   <Text style={styles.bidTime}>
-                    {new Date(bid.created_at).toLocaleTimeString("en-IN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatBidTime(bid.created_at)}
                   </Text>
                 </View>
                 <View style={styles.bidAmountWrapper}>
@@ -486,6 +500,7 @@ const formatTimeLeft = (endTime) => {
    </KeyboardAvoidingView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -875,3 +890,4 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 });
+ 

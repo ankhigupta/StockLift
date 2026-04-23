@@ -38,11 +38,15 @@ const placeBid = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Seller cannot bid on own auction" });
     }
 
-    if (parseFloat(bid_amount) <= parseFloat(auction.current_highest_bid || auction.base_price)) {
+    const minimumBid = parseFloat(auction.current_highest_bid) > 0
+    ? parseFloat(auction.current_highest_bid) + parseFloat(auction.min_bid_increment || 100)
+    : parseFloat(auction.base_price);
+
+    if (parseFloat(bid_amount) < minimumBid) {
       await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
-        message: `Bid must be higher than current highest bid of ${auction.current_highest_bid || auction.base_price}`,
+        message: `Minimum bid is ₹${minimumBid}. Current highest: ₹${auction.current_highest_bid || 0}, Base price: ₹${auction.base_price}`,
       });
     }
 
@@ -93,12 +97,18 @@ const placeBid = async (req, res, next) => {
     const io = getIO();
 
     // Sending to everyone in the auction room
+      const newBid = {
+      ...bidResult.rows[0],
+      created_at: new Date(bidResult.rows[0].created_at).toISOString(),
+    };
+
     io.to(`auction:${auction_id}`).emit("bid:new", {
-        auction_id,
-        bid: bidResult.rows[0],
-        current_highest_bid: bid_amount,
-        bidder_name: req.user.email,
+      auction_id,
+      bid: newBid,
+      current_highest_bid: bid_amount,
+      bidder_name: req.user.email,
     });
+        
 
     // If auction was auto-extended, notifying everyone of new end time
     if (minutesLeft <= 60) {
@@ -116,7 +126,12 @@ const placeBid = async (req, res, next) => {
     console.error("Socket emission error:", err.message);
     }
 
-    res.status(201).json({ success: true, bid: bidResult.rows[0] });
+   const responseBid = {
+    ...bidResult.rows[0],
+    created_at: new Date(bidResult.rows[0].created_at).toISOString(),
+  };
+
+res.status(201).json({ success: true, bid: responseBid });
   } catch (err) {
     await client.query("ROLLBACK");
     next(err);
@@ -139,7 +154,12 @@ const getBidsByAuction = async (req, res, next) => {
       [auction_id]
     );
 
-    res.json({ success: true, bids: result.rows });
+    const formattedBids = result.rows.map(bid => ({
+    ...bid,
+    created_at: new Date(bid.created_at).toISOString(),
+  }));
+
+  res.json({ success: true, bids: formattedBids });
   } catch (err) {
     next(err);
   }
@@ -159,7 +179,12 @@ const getMyBids = async (req, res, next) => {
       [bidder_id]
     );
 
-    res.json({ success: true, bids: result.rows });
+    const formattedBids = result.rows.map(bid => ({
+    ...bid,
+    created_at: new Date(bid.created_at).toISOString(),
+  }));
+
+  res.json({ success: true, bids: formattedBids });
   } catch (err) {
     next(err);
   }
