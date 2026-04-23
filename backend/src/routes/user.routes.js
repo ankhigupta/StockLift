@@ -2,13 +2,11 @@ const express = require("express");
 const router = express.Router();
 const { getProfile, updateProfileImage } = require("../controllers/user.controller");
 const { protect } = require("../middleware/auth.middleware");
-
-// reuse the same multer+cloudinary setup as upload.routes.js
-const multer = require("multer");
+const { cloudinary } = require("../config/cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
+const multer = require("multer");
 
-const storage = new CloudinaryStorage({
+const profileStorage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "stocklift/profiles",
@@ -17,12 +15,12 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+const profileUpload = multer({
+  storage: profileStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 router.get("/profile", protect, getProfile);
-router.put("/profile/image", protect, upload.single("image"), updateProfileImage);
+router.put("/profile/image", protect, profileUpload.single("image"), updateProfileImage);
 
 module.exports = router;

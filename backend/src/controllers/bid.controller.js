@@ -146,7 +146,7 @@ const getBidsByAuction = async (req, res, next) => {
     const { auction_id } = req.params;
 
     const result = await pool.query(
-      `SELECT b.*, u.name as bidder_name
+      `SELECT b.*, u.name as bidder_name, u.profile_image_url as bidder_profile_image
        FROM bids b
        JOIN users u ON b.bidder_id = u.id
        WHERE b.auction_id = $1

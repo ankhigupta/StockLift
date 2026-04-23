@@ -16,9 +16,9 @@ export const updateProfileImage = async (imageUri) => {
     name: filename,
     type,
   });
-
   const res = await api.put("/users/profile/image", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  headers: { "Content-Type": "multipart/form-data" },
+  timeout: 30000, // 30 seconds
+ });
   return res.data;
 };

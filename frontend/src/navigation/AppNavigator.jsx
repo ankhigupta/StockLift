@@ -13,6 +13,7 @@ import AuctionListScreen from "../screens/AuctionListScreen";
 import AuctionDetailScreen from "../screens/AuctionDetailScreen";
 import BidScreen from "../screens/BidScreen";
 import PaymentScreen from "../screens/PaymentScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -35,6 +36,8 @@ function MainTabs() {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Auctions") {
             iconName = focused ? "pricetag" : "pricetag-outline";
+          }else if (route.name === "Profile") {
+            iconName = focused ? "person" : "person-outline";
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -42,6 +45,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Auctions" component={AuctionListScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

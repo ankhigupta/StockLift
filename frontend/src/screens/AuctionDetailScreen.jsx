@@ -371,9 +371,16 @@ const formatBidTime = (dateStr) => {
 
               <View key={bid.id} style={styles.bidRow}>
                 <View style={styles.bidAvatar}>
-                  <Text style={styles.bidAvatarText}>
-                    {bid.bidder_name?.charAt(0).toUpperCase()}
-                  </Text>
+                  {bid.bidder_profile_image ? (
+                    <Image
+                      source={{ uri: bid.bidder_profile_image }}
+                      style={{ width: 36, height: 36, borderRadius: 18 }}
+                    />
+                  ) : (
+                    <Text style={styles.bidAvatarText}>
+                      {bid.bidder_name?.charAt(0).toUpperCase()}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.bidInfo}>
                   <Text style={styles.bidName}>{bid.bidder_name}</Text>

@@ -1,4 +1,4 @@
-const pool = require("../db");
+const { pool } = require("../db/index");
 const cloudinary = require("../config/cloudinary");
 
 // GET /users/profile
