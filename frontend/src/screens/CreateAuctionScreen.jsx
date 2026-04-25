@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState ,useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, StyleSheet, Alert, ActivityIndicator,
-  Image, SafeAreaView,
+  Image, SafeAreaView, Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import api from "../services/api";
 import { createAuction } from "../services/auction.service";
@@ -17,7 +18,7 @@ const DURATIONS = [
   { label: "7 Days", hours: 168 },
 ];
 
-export default function CreateAuctionScreen({ navigation }) {
+export default function CreateAuctionScreen({ navigation,route }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -32,46 +33,80 @@ export default function CreateAuctionScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+  const { auctionId, isEdit } = route.params || {};
+
+  // Start time state
+  const [startNow, setStartNow] = useState(true); // true = start immediately, false = schedule
+  const [startDate, setStartDate] = useState(new Date(Date.now() + 60 * 60 * 1000)); // 1hr from now
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+
+  useEffect(() => {
+    if (isEdit && auctionId) {
+      const loadAuction = async () => {
+        try {
+          const res = await api.get(`/auctions/${auctionId}`);
+          const a = res.data.auction;
+          setTitle(a.title || "");
+          setCategory(a.category || "");
+          setQuantity(a.quantity?.toString() || "");
+          setCondition(a.condition?.replace("_", " ") || "NEW");
+          setDescription(a.description || "");
+          setBasePrice(a.base_price?.toString() || "");
+          setMinBidIncrement(a.min_bid_increment?.toString() || "100");
+          setLocation(a.location || "");
+          setImages(a.images || []);
+          // Handle start time
+          if (a.start_time) {
+            const start = new Date(a.start_time);
+            const isInFuture = start > new Date();
+            setStartNow(!isInFuture);
+            setStartDate(start);
+          }
+        } catch (err) {
+          Alert.alert("Error", "Failed to load auction data");
+        }
+      };
+      loadAuction();
+    }
+  }, [isEdit, auctionId]);
 
   const pickFromGallery = async () => {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert("Permission needed", "Please allow access to your photo library");
-    return;
-  }
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsMultipleSelection: true,
-    quality: 0.8,
-    selectionLimit: 8,
-  });
-  if (!result.canceled) uploadImages(result.assets);
-};
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Please allow access to your photo library");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 8,
+    });
+    if (!result.canceled) uploadImages(result.assets);
+  };
 
-const pickFromCamera = async () => {
-  const permission = await ImagePicker.requestCameraPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert("Permission needed", "Please allow access to your camera");
-    return;
-  }
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.8,
-  });
-  if (!result.canceled) uploadImages(result.assets);
-};
+  const pickFromCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Please allow access to your camera");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!result.canceled) uploadImages(result.assets);
+  };
 
-const showImageOptions = () => {
-  Alert.alert(
-    "Add Photos",
-    "Choose how you want to add photos",
-    [
+  const showImageOptions = () => {
+    Alert.alert("Add Photos", "Choose how you want to add photos", [
       { text: "📷 Take Photo", onPress: pickFromCamera },
       { text: "🖼️ Choose from Gallery", onPress: pickFromGallery },
       { text: "Cancel", style: "cancel" },
-    ]
-  );
-};
+    ]);
+  };
 
   const uploadImages = async (assets) => {
     setUploading(true);
@@ -98,36 +133,73 @@ const showImageOptions = () => {
 
   const removeImage = (index) => setImages(prev => prev.filter((_, i) => i !== index));
 
-  const handleSubmit = async () => {
-    if (!title || !basePrice || !category || !quantity) {
-      Alert.alert("Error", "Please fill in all required fields");
-      return;
-    }
-    try {
-      setLoading(true);
-      const startTime = new Date();
-      const endTime = new Date(startTime.getTime() + duration.hours * 60 * 60 * 1000);
-      await createAuction({
-        title, description, category,
-        base_price: parseFloat(basePrice),
-        quantity: parseInt(quantity),
-        condition: condition.replace(" ", "_").toUpperCase(),
-        min_bid_increment: parseFloat(minBidIncrement),
-        location,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        images,
-      });
-      Alert.alert("Success! 🎉", "Your auction has been published!", [
-        { text: "OK", onPress: () => navigation.goBack() }
-      ]);
-    } catch (err) {
-      Alert.alert("Error", err.response?.data?.message || "Failed to create auction");
-    } finally {
-      setLoading(false);
-    }
+  const formatStartDate = (date) => {
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric", month: "short", year: "numeric",
+    });
   };
 
+  const formatStartTime = (date) => {
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit", minute: "2-digit",
+    });
+  };
+
+  const validateFields = () => {
+    if (!title || !basePrice || !category || !quantity || !description || !location) {
+      Alert.alert("Missing Fields", "Please fill in title, category, quantity, description, location and base price.");
+      return false;
+    }
+    if (!startNow && startDate <= new Date()) {
+      Alert.alert("Invalid Start Time", "Scheduled start time must be in the future.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (asDraft = false) => {
+  if (!validateFields()) return;
+
+  try {
+    setLoading(true);
+    const startTime = startNow ? new Date() : startDate;
+    const endTime = new Date(startTime.getTime() + duration.hours * 60 * 60 * 1000);
+    const status = asDraft ? "DRAFT" : "UPCOMING";
+
+    const payload = {
+      title, description, category,
+      base_price: parseFloat(basePrice),
+      quantity: parseInt(quantity),
+      condition: condition.replace(" ", "_").toUpperCase(),
+      min_bid_increment: parseFloat(minBidIncrement),
+      location,
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      images,
+      status,
+    };
+
+    if (isEdit && auctionId) {
+      await api.put(`/auctions/${auctionId}`, payload);
+    } else {
+      await createAuction(payload);
+    }
+
+    const message = asDraft
+      ? "Auction saved as draft."
+      : startNow ? "Your auction is now live!" : "Your auction has been scheduled.";
+
+    Alert.alert(asDraft ? "Draft Saved 📝" : "Success! 🎉", message, [
+      { text: "OK", onPress: () => navigation.goBack() },
+    ]);
+  } catch (err) {
+    Alert.alert("Error", err.response?.data?.message || "Failed to save auction");
+  } finally {
+    setLoading(false);
+  }
+};
+
+         
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -135,16 +207,15 @@ const showImageOptions = () => {
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>New Auction</Text>
-          <Text style={styles.headerSubtitle}>Fill details to publish your lot</Text>
-        </View>
-        <View style={styles.draftBadge}>
-          <Text style={styles.draftText}>Draft</Text>
+          <Text style={styles.headerTitle}>
+            {isEdit ? "Edit Auction" : "New Auction"}
+          </Text>
         </View>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
+        {/* PRODUCT INFO */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardIcon}>📦</Text>
@@ -212,7 +283,7 @@ const showImageOptions = () => {
             ))}
           </View>
 
-          <Text style={styles.label}>DESCRIPTION</Text>
+          <Text style={styles.label}>DESCRIPTION *</Text>
           <TextInput
             style={[styles.input, styles.textarea]}
             placeholder="Condition notes, storage info, certifications..."
@@ -223,7 +294,7 @@ const showImageOptions = () => {
             numberOfLines={4}
           />
 
-          <Text style={styles.label}>LOCATION</Text>
+          <Text style={styles.label}>LOCATION *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. Delhi NCR Warehouse"
@@ -233,6 +304,7 @@ const showImageOptions = () => {
           />
         </View>
 
+        {/* IMAGES */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardIcon}>🖼️</Text>
@@ -240,10 +312,7 @@ const showImageOptions = () => {
           </View>
 
           {images.length === 0 ? (
-            <TouchableOpacity
-              style={styles.uploadBox}
-              onPress={showImageOptions}
-              disabled={uploading}>
+            <TouchableOpacity style={styles.uploadBox} onPress={showImageOptions} disabled={uploading}>
               {uploading ? (
                 <ActivityIndicator color="#D94F2B" size="large" />
               ) : (
@@ -263,9 +332,7 @@ const showImageOptions = () => {
                 {images.map((uri, index) => (
                   <View key={index} style={styles.imageWrap}>
                     <Image source={{ uri }} style={styles.imageTile} />
-                    <TouchableOpacity
-                      style={styles.imageRemove}
-                      onPress={() => removeImage(index)}>
+                    <TouchableOpacity style={styles.imageRemove} onPress={() => removeImage(index)}>
                       <Text style={styles.imageRemoveText}>✕</Text>
                     </TouchableOpacity>
                   </View>
@@ -280,6 +347,7 @@ const showImageOptions = () => {
           )}
         </View>
 
+        {/* AUCTION SETTINGS */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardIcon}>⚙️</Text>
@@ -337,18 +405,112 @@ const showImageOptions = () => {
               ))}
             </View>
           )}
+
+          {/* START TIME */}
+          <Text style={styles.label}>START TIME *</Text>
+          <View style={styles.startTimeToggle}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, startNow && styles.toggleBtnActive]}
+              onPress={() => setStartNow(true)}>
+              <Text style={[styles.toggleText, startNow && styles.toggleTextActive]}>
+                Start Now
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleBtn, !startNow && styles.toggleBtnActive]}
+              onPress={() => setStartNow(false)}>
+              <Text style={[styles.toggleText, !startNow && styles.toggleTextActive]}>
+                Schedule
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!startNow && (
+            <View style={styles.scheduleBox}>
+              <TouchableOpacity
+                style={styles.dateTimeBtn}
+                onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.dateTimeIcon}>📅</Text>
+                <View>
+                  <Text style={styles.dateTimeLabel}>DATE</Text>
+                  <Text style={styles.dateTimeValue}>{formatStartDate(startDate)}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.dateTimeDivider} />
+
+              <TouchableOpacity
+                style={styles.dateTimeBtn}
+                onPress={() => setShowTimePicker(true)}>
+                <Text style={styles.dateTimeIcon}>🕐</Text>
+                <View>
+                  <Text style={styles.dateTimeLabel}>TIME</Text>
+                  <Text style={styles.dateTimeValue}>{formatStartTime(startDate)}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={startDate}
+              mode="date"
+              display="spinner"
+              minimumDate={new Date()}
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  const updated = new Date(startDate);
+                  updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                  setStartDate(updated);
+                }
+              }}
+            />
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={startDate}
+              mode="time"
+              display="spinner"
+              onChange={(event, date) => {
+                setShowTimePicker(false);
+                if (date) {
+                  const updated = new Date(startDate);
+                  updated.setHours(date.getHours(), date.getMinutes());
+                  setStartDate(updated);
+                }
+              }}
+            />
+          )}
         </View>
 
-        <TouchableOpacity
-          style={[styles.publishBtn, loading && styles.publishBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.publishBtnText}>Publish Auction →</Text>
-          )}
-        </TouchableOpacity>
+        {/* ACTION BUTTONS */}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.draftBtn, loading && styles.btnDisabled]}
+            onPress={() => handleSubmit(true)}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#D94F2B" />
+            ) : (
+              <Text style={styles.draftBtnText}>Save as Draft</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.publishBtn, loading && styles.btnDisabled]}
+            onPress={() => handleSubmit(false)}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.publishBtnText}>
+                {startNow ? "Publish Now →" : "Schedule →"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 60 }} />
       </ScrollView>
@@ -460,11 +622,51 @@ const styles = StyleSheet.create({
   },
   rupee: { fontSize: 16, color: "#D94F2B", fontWeight: "700", marginRight: 6 },
   priceInput: { flex: 1, fontSize: 15, color: "#1a1a1a" },
+  startTimeToggle: {
+    flexDirection: "row",
+    backgroundColor: "#F5F3EF",
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  toggleBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    alignItems: "center",
+  },
+  toggleBtnActive: { backgroundColor: "#D94F2B" },
+  toggleText: { fontSize: 14, fontWeight: "600", color: "#aaa" },
+  toggleTextActive: { color: "#fff" },
+  scheduleBox: {
+    flexDirection: "row",
+    backgroundColor: "#F5F3EF",
+    borderRadius: 12,
+    marginTop: 10,
+    overflow: "hidden",
+  },
+  dateTimeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center",
+    padding: 14, gap: 10,
+  },
+  dateTimeDivider: { width: 1, backgroundColor: "#E0D5C8", marginVertical: 10 },
+  dateTimeIcon: { fontSize: 20 },
+  dateTimeLabel: { fontSize: 9, color: "#aaa", fontWeight: "700", letterSpacing: 1 },
+  dateTimeValue: { fontSize: 13, color: "#1a1a1a", fontWeight: "600", marginTop: 2 },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 4,
+  },
+  draftBtn: {
+    flex: 1, padding: 18, borderRadius: 16,
+    alignItems: "center", borderWidth: 1.5, borderColor: "#D94F2B",
+    backgroundColor: "#fff",
+  },
+  draftBtnText: { color: "#D94F2B", fontSize: 15, fontWeight: "700" },
   publishBtn: {
-    backgroundColor: "#D94F2B", padding: 18,
-    borderRadius: 16, alignItems: "center", marginTop: 4,
+    flex: 2, padding: 18, borderRadius: 16,
+    alignItems: "center", backgroundColor: "#D94F2B",
     shadowColor: "#D94F2B", shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
   },
-  publishBtnDisabled: { backgroundColor: "#eda08a" },
-  publishBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  publishBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  btnDisabled: { opacity: 0.6 },
 });

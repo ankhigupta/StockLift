@@ -3,40 +3,46 @@ const { pool } = require("../db/index");
 // POST /auctions - seller creates auction
 const createAuction = async (req, res, next) => {
   try {
-    const { 
-      title, description, category, base_price, 
-      start_time, end_time, images, quantity, 
-      location, condition, min_bid_increment 
+    const {
+      title, description, category, base_price,
+      start_time, end_time, images, quantity,
+      location, condition, min_bid_increment,
+      status, // "DRAFT" or "UPCOMING"
     } = req.body;
-
+ 
     const seller_id = req.user.id;
-
-    if (!title || !base_price || !start_time || !end_time) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "title, base_price, start_time and end_time are required" 
+ 
+    if (!title || !base_price || !start_time || !end_time || !description || !location || !quantity) {
+      return res.status(400).json({
+        success: false,
+        message: "title, description, location, quantity, base_price, start_time and end_time are required",
       });
     }
-
-    // FORCING UTC conversion here
+ 
+    // Determine status:
+    // DRAFT → seller explicitly saved as draft
+    // UPCOMING → scheduled or immediate (cron will flip to ACTIVE when start_time passes)
+    const auctionStatus = status === "DRAFT" ? "DRAFT" : "UPCOMING";
+ 
     const startUTC = new Date(start_time).toISOString();
     const endUTC = new Date(end_time).toISOString();
-
+ 
     const result = await pool.query(
       `INSERT INTO auctions (
-        title, description, category, base_price, seller_id, 
-        start_time, end_time, images, quantity, location, 
-        condition, min_bid_increment
+        title, description, category, base_price, seller_id,
+        start_time, end_time, images, quantity,
+        location, condition, min_bid_increment, status
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10, $11, $12, $13)
       RETURNING *`,
       [
         title, description, category, base_price, seller_id,
         startUTC, endUTC, images || [], quantity || 1,
-        location, condition || 'NEW', min_bid_increment || 100
+        location, condition || "NEW", min_bid_increment || 100,
+        auctionStatus,
       ]
     );
-
+ 
     res.status(201).json({ success: true, auction: result.rows[0] });
   } catch (err) {
     next(err);
@@ -111,36 +117,77 @@ const getAuctionById = async (req, res, next) => {
 const updateAuction = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, description, category, base_price, start_time, end_time } = req.body;
     const seller_id = req.user.id;
-
+ 
+    // Check auction exists and belongs to this seller
     const existing = await pool.query(
       "SELECT * FROM auctions WHERE id = $1 AND seller_id = $2",
       [id, seller_id]
     );
-
+ 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ success: false, message: "Auction not found or unauthorized" });
+      return res.status(404).json({ success: false, message: "Auction not found" });
     }
-
-    if (existing.rows[0].status !== "UPCOMING") {
-      return res.status(400).json({ success: false, message: "Can only edit UPCOMING auctions" });
+ 
+    const auction = existing.rows[0];
+ 
+    // Only DRAFT and UPCOMING auctions can be edited
+    if (!["DRAFT", "UPCOMING"].includes(auction.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Only DRAFT or UPCOMING auctions can be edited",
+      });
     }
-
+ 
+    const {
+      title, description, category, base_price,
+      start_time, end_time, images, quantity,
+      location, condition, min_bid_increment,
+      status, // allow publishing: DRAFT → UPCOMING
+    } = req.body;
+ 
+    // If status is being changed, validate the transition
+    let newStatus = auction.status;
+    if (status) {
+      if (auction.status === "DRAFT" && status === "UPCOMING") {
+        newStatus = "UPCOMING"; // publishing a draft
+      } else if (auction.status === "UPCOMING" && status === "DRAFT") {
+        newStatus = "DRAFT"; // unpublish back to draft
+      }
+    }
+ 
     const result = await pool.query(
-      `UPDATE auctions 
-       SET title = $1, description = $2, category = $3, base_price = $4, 
-           start_time = $5, end_time = $6, updated_at = NOW()
-       WHERE id = $7 AND seller_id = $8
-       RETURNING *`,
-      [title, description, category, base_price, start_time, end_time, id, seller_id]
+      `UPDATE auctions SET
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        category = COALESCE($3, category),
+        base_price = COALESCE($4, base_price),
+        start_time = COALESCE($5, start_time),
+        end_time = COALESCE($6, end_time),
+        images = COALESCE($7, images),
+        quantity = COALESCE($8, quantity),
+        location = COALESCE($9, location),
+        condition = COALESCE($10, condition),
+        min_bid_increment = COALESCE($11, min_bid_increment),
+        status = $12,
+        updated_at = NOW()
+      WHERE id = $13
+      RETURNING *`,
+      [
+        title, description, category, base_price,
+        start_time ? new Date(start_time).toISOString() : null,
+        end_time ? new Date(end_time).toISOString() : null,
+        images, quantity, location, condition, min_bid_increment,
+        newStatus, id,
+      ]
     );
-
+ 
     res.json({ success: true, auction: result.rows[0] });
   } catch (err) {
     next(err);
   }
 };
+ 
 
 // DELETE /auctions/:id - seller deletes auction
 const deleteAuction = async (req, res, next) => {
@@ -157,8 +204,8 @@ const deleteAuction = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Auction not found or unauthorized" });
     }
 
-    if (existing.rows[0].status !== "UPCOMING") {
-      return res.status(400).json({ success: false, message: "Can only delete UPCOMING auctions" });
+    if (!["UPCOMING", "DRAFT"].includes(existing.rows[0].status)) {
+      return res.status(400).json({ success: false, message: "Can only delete UPCOMING or DRAFT auctions" });
     }
 
     await pool.query("DELETE FROM auctions WHERE id = $1", [id]);

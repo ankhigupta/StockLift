@@ -287,21 +287,35 @@ const formatBidTime = (dateStr) => {
               {formatCurrency(auction.base_price)}
             </Text>
           </View>
-          <View style={[styles.priceCard, styles.priceCardAccent]}>
-            <Text style={[styles.priceLabel, { color: "rgba(255,255,255,0.8)" }]}>
-              Current Bid
-            </Text>
-            <Text style={[styles.priceValue, { color: "#FFFFFF" }]}>
-              {formatCurrency(auction.current_highest_bid || auction.base_price)}
-            </Text>
-          </View>
-          <View style={styles.priceCard}>
-            <Text style={styles.priceLabel}>Time Left</Text>
-            <Text style={[styles.priceValue, { color: "#D94F2B", fontSize: 14 }]}>
-              {formatTimeLeft(auction.end_time)}
-            </Text>
-          </View>
+
+          {auction.status !== "UPCOMING" && (
+            <View style={[styles.priceCard, styles.priceCardAccent]}>
+              <Text style={[styles.priceLabel, { color: "rgba(255,255,255,0.8)" }]}>
+                Current Bid
+              </Text>
+              <Text style={[styles.priceValue, { color: "#FFFFFF" }]}>
+                {formatCurrency(auction.current_highest_bid || auction.base_price)}
+              </Text>
+            </View>
+          )}
+
+          {auction.status === "UPCOMING" ? (
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>Starts In</Text>
+              <Text style={[styles.priceValue, { color: "#D94F2B", fontSize: 14 }]}>
+                {formatTimeLeft(auction.start_time)}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>Time Left</Text>
+              <Text style={[styles.priceValue, { color: "#D94F2B", fontSize: 14 }]}>
+                {formatTimeLeft(auction.end_time)}
+              </Text>
+            </View>
+          )}
         </View>
+        
         
       {/* Images Section */}
         {auction.images && auction.images.length > 0 && (
@@ -343,6 +357,18 @@ const formatBidTime = (dateStr) => {
               <Text style={styles.infoValue}>{auction.seller_name}</Text>
             </View>
             <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Location</Text>
+              <Text style={styles.infoValue}>{auction.location || "Not specified"}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Quantity</Text>
+              <Text style={styles.infoValue}>{auction.quantity || 1}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Condition</Text>
+              <Text style={styles.infoValue}>{auction.condition || "NEW"}</Text>
+            </View>
+            <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Start Time</Text>
               <Text style={styles.infoValue}>{formatDate(auction.start_time)}</Text>
             </View>
@@ -366,8 +392,6 @@ const formatBidTime = (dateStr) => {
             </View>
           ) : (
             bids.map((bid, index) => (
-              console.log("RAW:", bid.created_at),
-              console.log("PARSED:", new Date(bid.created_at)),
 
               <View key={bid.id} style={styles.bidRow}>
                 <View style={styles.bidAvatar}>
@@ -438,6 +462,10 @@ const formatBidTime = (dateStr) => {
         animationType="slide"
         onRequestClose={() => setBidModalVisible(false)}
       >
+          <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Place Your Bid</Text>
@@ -503,6 +531,8 @@ const formatBidTime = (dateStr) => {
             </View>
           </View>
         </View>
+
+  </KeyboardAvoidingView>
       </Modal>
    </KeyboardAvoidingView>
   );

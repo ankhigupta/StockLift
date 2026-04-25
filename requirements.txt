@@ -1,0 +1,28 @@
+express          — web framework
+pg               — PostgreSQL client
+bcryptjs         — password hashing
+jsonwebtoken     — JWT auth
+dotenv           — environment variables
+cors             — cross origin requests
+morgan           — request logging
+multer           — file upload handling
+multer-storage-cloudinary — cloudinary multer storage
+cloudinary       — image storage
+socket.io        — real time bidding
+ioredis          — Redis client
+@socket.io/redis-adapter — Socket.IO Redis pub/sub
+node-cron        — scheduled jobs
+firebase-admin   — push notifications
+http             — built in Node.js
+
+
+react-native / expo          — mobile framework
+@react-navigation/native     — navigation
+@react-navigation/native-stack — stack navigator
+@react-navigation/bottom-tabs — tab navigator
+axios                        — HTTP requests
+expo-secure-store            — JWT token storage
+expo-image-picker            — image selection
+socket.io-client             — real time bidding
+@expo/vector-icons           — tab bar icons
+@react-native-community/datetimepicker — date/time picker
