@@ -354,7 +354,12 @@ const formatBidTime = (dateStr) => {
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Seller</Text>
-              <Text style={styles.infoValue}>{auction.seller_name}</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("PublicProfile", { 
+                userId: auction.seller_id, 
+                auctionId: auctionId 
+              })}>
+                <Text style={[styles.infoValue, { color: "#D94F2B" }]}>{auction.seller_name}</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Location</Text>
@@ -394,6 +399,10 @@ const formatBidTime = (dateStr) => {
             bids.map((bid, index) => (
 
               <View key={bid.id} style={styles.bidRow}>
+              <TouchableOpacity onPress={() => navigation.navigate("PublicProfile", { 
+                userId: bid.bidder_id,
+                auctionId: auctionId
+                })}>
                 <View style={styles.bidAvatar}>
                   {bid.bidder_profile_image ? (
                     <Image
@@ -406,6 +415,7 @@ const formatBidTime = (dateStr) => {
                     </Text>
                   )}
                 </View>
+              </TouchableOpacity>  
                 <View style={styles.bidInfo}>
                   <Text style={styles.bidName}>{bid.bidder_name}</Text>
                   <Text style={styles.bidTime}>

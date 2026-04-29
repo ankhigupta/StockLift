@@ -9,6 +9,17 @@ const placeBid = async (req, res, next) => {
     const { auction_id, bid_amount } = req.body;
     const bidder_id = req.user.id;
 
+    const suspendedCheck = await pool.query(
+    "SELECT is_suspended FROM users WHERE id = $1",
+    [bidder_id]
+  );
+  if (suspendedCheck.rows[0]?.is_suspended) {
+    return res.status(403).json({
+      success: false,
+      message: "Your account has been suspended due to repeated non-payment. Please contact support.",
+    });
+  }
+
     if (!auction_id || !bid_amount) {
       return res.status(400).json({ success: false, message: "auction_id and bid_amount are required" });
     }

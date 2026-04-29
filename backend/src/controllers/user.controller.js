@@ -8,10 +8,11 @@ const getProfile = async (req, res) => {
   try {
     // Get base user info
     const userResult = await pool.query(
-      `SELECT id, name, email, role, phone, profile_image_url, created_at
-       FROM users WHERE id = $1`,
-      [userId]
-    );
+    `SELECT id, name, email, role, phone, profile_image_url, 
+    is_verified, is_suspended, strike_count, created_at
+    FROM users WHERE id = $1`,
+    [userId]
+  );
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });

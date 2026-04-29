@@ -9,6 +9,7 @@ const paymentRoutes = require("./payment.routes");
 const dashboardRoutes = require("./dashboard.routes");
 const uploadRoutes = require("./upload.routes");
 const userRoutes = require("./user.routes");
+const reviewRoutes = require("./review.routes");
 
 router.use("/auth", authRoutes);
 router.use("/auctions", auctionRoutes);
@@ -18,5 +19,6 @@ router.use("/payments", paymentRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/upload", uploadRoutes);
 router.use("/users", userRoutes); 
+router.use("/", reviewRoutes); // already has /users/:id and /reviews prefix
 
 module.exports = router;

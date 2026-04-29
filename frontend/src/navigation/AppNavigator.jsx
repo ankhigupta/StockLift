@@ -14,6 +14,7 @@ import AuctionDetailScreen from "../screens/AuctionDetailScreen";
 import BidScreen from "../screens/BidScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import PublicProfileScreen from "../screens/PublicProfileScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -61,6 +62,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Bid" component={BidScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} />
         <Stack.Screen name="CreateAuction" component={CreateAuctionScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

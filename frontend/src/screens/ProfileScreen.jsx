@@ -228,6 +228,36 @@ export default function ProfileScreen({ navigation }) {
             </View>
           )}
         </View>
+        {/* STRIKE WARNING — buyers only */}
+        {!isSeller && profile?.strike_count > 0 && (
+          <View style={styles.section}>
+            <View style={[
+              styles.strikeCard,
+              profile.strike_count >= 3 && styles.strikeCardDanger
+            ]}>
+              <Text style={styles.strikeIcon}>
+                {profile.strike_count >= 3 ? "🚨" : "⚠️"}
+              </Text>
+              <View style={styles.strikeContent}>
+                <Text style={styles.strikeTitle}>
+                  {profile.is_suspended
+                    ? "Account Suspended"
+                    : `${profile.strike_count} Strike${profile.strike_count > 1 ? "s" : ""}`}
+                </Text>
+                <Text style={styles.strikeText}>
+                  {profile.is_suspended
+                    ? "Your account has been suspended due to repeated non-payment. Contact support."
+                    : `${4 - profile.strike_count} more strike${4 - profile.strike_count > 1 ? "s" : ""} will result in account suspension.`}
+                </Text>
+              </View>
+              <View style={styles.strikeBadge}>
+                <Text style={styles.strikeBadgeText}>
+                  {profile.strike_count}/4
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* LOGOUT */}
@@ -409,4 +439,31 @@ const styles = StyleSheet.create({
     borderColor: "#D94F2B",
   },
   logoutText: { fontSize: 15, fontWeight: "700", color: "#D94F2B" },
+  strikeCard: {
+    backgroundColor: "#FFF8EE",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#F5D78E",
+  },
+  strikeCardDanger: {
+    backgroundColor: "#FFF0ED",
+    borderColor: "#FFB8A8",
+  },
+  strikeIcon: { fontSize: 24 },
+  strikeContent: { flex: 1 },
+  strikeTitle: { fontSize: 14, fontWeight: "700", color: "#1A1208", marginBottom: 3 },
+  strikeText: { fontSize: 12, color: "#8A7968", lineHeight: 17 },
+  strikeBadge: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  strikeBadgeText: { fontSize: 13, fontWeight: "800", color: "#D94F2B" },
 });

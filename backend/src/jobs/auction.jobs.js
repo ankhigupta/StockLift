@@ -62,8 +62,23 @@ const endExpiredAuctions = async () => {
             [auction.id, auction.highest_bidder_id]
           );
 
+          // Keep second highest bid as OUTBID for potential promotion
           await client.query(
-            "UPDATE bids SET status = 'LOST' WHERE auction_id = $1 AND status NOT IN ('WON', 'LOST')",
+            `UPDATE bids SET status = 'OUTBID' 
+            WHERE auction_id = $1 
+            AND bidder_id != $2
+            AND bid_amount = (
+              SELECT MAX(bid_amount) FROM bids 
+              WHERE auction_id = $1 AND bidder_id != $2
+            )`,
+            [auction.id, auction.highest_bidder_id]
+          );
+
+          // Mark all remaining non-winning bids as LOST
+          await client.query(
+            `UPDATE bids SET status = 'LOST' 
+            WHERE auction_id = $1 
+            AND status NOT IN ('WON', 'LOST', 'OUTBID')`,
             [auction.id]
           );
 
@@ -95,6 +110,27 @@ const promoteUnpaidOrders = async () => {
     for (const order of unpaidOrders.rows) {
       await client.query("BEGIN");
       try {
+        // --- STRIKE LOGIC ---
+        // Add a strike to the buyer who didn't pay
+        await client.query(
+          `INSERT INTO strikes (buyer_id, auction_id, reason)
+           VALUES ($1, $2, 'Payment not completed within 24 hours')`,
+          [order.buyer_id, order.auction_id]
+        );
+
+        // Increment strike_count on user
+        await client.query(
+          `UPDATE users 
+           SET strike_count = strike_count + 1,
+               -- Suspend if 4 or more strikes
+               is_suspended = CASE WHEN strike_count + 1 >= 4 THEN TRUE ELSE is_suspended END,
+               updated_at = NOW()
+           WHERE id = $1`,
+          [order.buyer_id]
+        );
+
+        console.log(`Strike added to buyer: ${order.buyer_id}`);
+
         // Find second highest bidder
         const secondBidder = await client.query(
           `SELECT * FROM bids 
@@ -105,7 +141,6 @@ const promoteUnpaidOrders = async () => {
         );
 
         if (secondBidder.rows.length === 0) {
-          // No second bidder
           await client.query(
             "UPDATE orders SET status = 'FAILED', updated_at = NOW() WHERE id = $1",
             [order.id]
@@ -137,6 +172,7 @@ const promoteUnpaidOrders = async () => {
 
           console.log(`Order promoted to second bidder: ${order.id}`);
         }
+
         await client.query("COMMIT");
       } catch (err) {
         await client.query("ROLLBACK");
