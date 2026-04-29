@@ -65,7 +65,7 @@ export default function AuctionDetailScreen({ route, navigation }) {
 
       // connect to socket
       if (token) {
-        const socket = io("http://10.20.16.213:8000", {
+        const socket = io("https://stocklift-production.up.railway.app", {
           auth: { token },
           transports: ["websocket"],
         });
