@@ -192,9 +192,10 @@ export default function CreateAuctionScreen({ navigation,route }) {
     Alert.alert(asDraft ? "Draft Saved 📝" : "Success! 🎉", message, [
       { text: "OK", onPress: () => navigation.goBack() },
     ]);
-  } catch (err) {
-    Alert.alert("Error", err.response?.data?.message || "Failed to save auction");
-  } finally {
+  }  catch (err) {
+  console.log("create auction error:", err.response?.status, JSON.stringify(err.response?.data), err.message);
+  Alert.alert("Error", err.response?.data?.message || "Failed to save auction");
+} finally {
     setLoading(false);
   }
 };
