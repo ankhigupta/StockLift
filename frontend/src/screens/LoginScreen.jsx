@@ -1,17 +1,13 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  StatusBar,
-  KeyboardAvoidingView,
-  Alert,
-  Platform,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, StatusBar, KeyboardAvoidingView, Alert, Platform,
 } from "react-native";
 import { loginUser } from "../services/auth.service";
+import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
+import api from "../services/api";
+import * as SecureStore from "expo-secure-store";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -19,6 +15,25 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+ const saveFcmToken = async () => {
+  if (!Device.isDevice) return;
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== "granted") return;
+    const token = (await Notifications.getExpoPushTokenAsync({
+      projectId: "60707636-6038-411b-9c91-c90cc7bb37fe"
+    })).data;
+    // Read token directly from SecureStore
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    await api.post("/auth/fcm-token", { fcm_token: token }, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    console.log("FCM token saved after login");
+  } catch (err) {
+    console.log("FCM token error:", err.message);
+  }
+};
 
   const handleLogin = async () => {
     setError("");
@@ -30,9 +45,12 @@ export default function LoginScreen({ navigation }) {
 
     setLoading(true);
     try {
-
-      await loginUser(email, password);
-      navigation.replace("Main");
+       await loginUser(email, password);
+      // Small delay to ensure token is stored before FCM call
+      setTimeout(async () => {
+      await saveFcmToken();
+    }, 500);
+    navigation.replace("Main");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid email or password. Please try again.");
     } finally {

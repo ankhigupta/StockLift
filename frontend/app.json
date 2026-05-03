@@ -12,7 +12,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stocklift.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,9 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "googleServicesFile": "./google-services.json",
       "package": "com.stocklift.app"
+}
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,4 +39,4 @@
       }
     }
   }
-}
+

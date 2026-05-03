@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1089542856986",
+    "project_id": "stocklift-fed47",
+    "storage_bucket": "stocklift-fed47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1089542856986:android:7ba9adfd93ec406f944ca3",
+        "android_client_info": {
+          "package_name": "com.stocklift.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSY4vQnibo66J59w7Z8mgZGBisIzvzPfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
