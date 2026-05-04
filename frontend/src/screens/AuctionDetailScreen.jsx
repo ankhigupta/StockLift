@@ -200,8 +200,10 @@ const formatBidTime = (dateStr) => {
   };
 
   const minBidAmount = auction
-    ? parseFloat(auction.current_highest_bid || auction.base_price) + parseFloat(auction.min_bid_increment || 100)
-    : 0;
+  ? parseFloat(auction.current_highest_bid) > 0
+    ? parseFloat(auction.current_highest_bid) + parseFloat(auction.min_bid_increment || 100)
+    : parseFloat(auction.base_price)
+  : 0;
 
   if (loading) {
     return (
