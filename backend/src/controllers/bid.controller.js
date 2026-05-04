@@ -1,7 +1,6 @@
 const { pool } = require("../db/index");
 //const { getIO } = require("../socket/socket");
 //const { sendNotification } = require("../config/firebase");
-const { sendNotification, sendMulticastNotification } = require("../config/firebase");
 
 
 // POST /bids - placing a bid
@@ -111,33 +110,10 @@ const placeBid = async (req, res, next) => {
  
     await client.query("COMMIT");
  
-    // Get bidder name and seller FCM token for notifications
-    const [bidderResult, sellerResult] = await Promise.all([
-      pool.query("SELECT name FROM users WHERE id = $1", [bidder_id]),
-      pool.query("SELECT name, fcm_token FROM users WHERE id = $1", [auction.seller_id]),
-    ]);
- 
-    const bidderName = bidderResult.rows[0]?.name || "Someone";
-    const seller = sellerResult.rows[0];
- 
-    // Send notifications (don't await — don't block response)
-    Promise.all([
-      // Notify seller of new bid
-      seller?.fcm_token && sendNotification(
-        seller.fcm_token,
-        "New Bid on Your Auction! 🎉",
-        `${bidderName} placed ₹${Number(bid_amount).toLocaleString("en-IN")} on "${auction.title}"`,
-        { type: "new_bid", auction_id }
-      ),
- 
-      // Notify outbid user
-      outbidUser?.fcm_token && sendNotification(
-        outbidUser.fcm_token,
-        "You've Been Outbid! ⚡",
-        `Someone placed a higher bid on "${auction.title}". Place a new bid to stay in the lead!`,
-        { type: "outbid", auction_id }
-      ),
-    ]).catch(err => console.error("Notification error:", err.message));
+    const bidderResult = await pool.query(
+    "SELECT name FROM users WHERE id = $1", [bidder_id]
+  );
+  const bidderName = bidderResult.rows[0]?.name || "Someone";
  
     // Socket.IO real-time events
     try {
