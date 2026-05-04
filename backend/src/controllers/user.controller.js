@@ -21,19 +21,28 @@ const getProfile = async (req, res) => {
     const user = userResult.rows[0];
     let stats = {};
 
-    if (user.role === "SELLER") {
-      const statsResult = await pool.query(
-        `SELECT
-           COUNT(*) FILTER (WHERE status = 'ACTIVE')   AS active_auctions,
-           COUNT(*) FILTER (WHERE status = 'ENDED')    AS ended_auctions,
-           COUNT(*) FILTER (WHERE status = 'SOLD')     AS sold_auctions,
-           COUNT(*)                                     AS total_auctions,
-           COALESCE(SUM(current_highest_bid) FILTER (WHERE status = 'SOLD'), 0) AS total_revenue
-         FROM auctions WHERE seller_id = $1`,
-        [userId]
-      );
-      stats = statsResult.rows[0];
-    } else if (user.role === "BUYER") {
+  if (user.role === "SELLER") {
+  const statsResult = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE status = 'ACTIVE') AS active_auctions,
+       COUNT(*) FILTER (WHERE status = 'ENDED') AS ended_auctions,
+       COUNT(*) AS total_auctions
+     FROM auctions WHERE seller_id = $1`,
+    [userId]
+  );
+
+  // Use PAID orders for revenue — same as dashboard
+  const revenueResult = await pool.query(
+    `SELECT COALESCE(SUM(final_amount), 0) AS total_revenue
+     FROM orders WHERE seller_id = $1 AND status = 'PAID'`,
+    [userId]
+  );
+
+  stats = {
+    ...statsResult.rows[0],
+    total_revenue: parseFloat(revenueResult.rows[0].total_revenue),
+  };
+} else if (user.role === "BUYER") {
       const statsResult = await pool.query(
         `SELECT
            COUNT(*)                          AS total_bids,
