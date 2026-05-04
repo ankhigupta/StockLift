@@ -225,11 +225,28 @@ export default function PublicProfileScreen({ route, navigation }) {
                   <Text style={styles.reliabilitySubLabel}>Based on payment history</Text>
                 </View>
                 <View style={styles.reliabilityRight}>
-                  <Text style={[styles.reliabilityScore, { color: getReliabilityColor(profile.stats?.reliability_score || 100) }]}>
-                    {parseInt(profile.stats?.auctions_won) > 0 ? `${profile.stats?.reliability_score}%` : "N/A"}
+                 <Text style={[styles.reliabilityScore, { 
+                color: getReliabilityColor(
+                    parseInt(profile.stats?.auctions_won) > 0 
+                    ? profile.stats?.reliability_score 
+                    : 0
+                ) 
+                }]}>
+                {parseInt(profile.stats?.auctions_won) > 0 
+                    ? `${profile.stats?.reliability_score}%` 
+                    : "N/A"}
                 </Text>
-                <Text style={[styles.reliabilityBadge, { color: getReliabilityColor(profile.stats?.reliability_score || 100) }]}>
-                    {getReliabilityLabel(profile.stats?.reliability_score || 100, parseInt(profile.stats?.auctions_won) > 0)}
+                <Text style={[styles.reliabilityBadge, { 
+                color: getReliabilityColor(
+                    parseInt(profile.stats?.auctions_won) > 0 
+                    ? profile.stats?.reliability_score 
+                    : 0
+                ) 
+                }]}>
+                {getReliabilityLabel(
+                    profile.stats?.reliability_score || 0, 
+                    parseInt(profile.stats?.auctions_won) > 0
+                )}
                 </Text>
                 </View>
               </View>
