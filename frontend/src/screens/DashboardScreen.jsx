@@ -13,6 +13,7 @@ export default function DashboardScreen({ navigation }) {
   const [upcomingAuctions, setUpcomingAuctions] = useState([]);
   const [draftAuctions, setDraftAuctions] = useState([]);
   const [listData, setListData] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -38,20 +39,24 @@ export default function DashboardScreen({ navigation }) {
         setUpcomingAuctions(upcomingRes.data.auctions || []);
         setDraftAuctions(draftRes.data.auctions || []);
       } else {
-        const [statsRes, bidsRes] = await Promise.all([
-          api.get("/dashboard/buyer"),
-          api.get("/bids/my"),
-        ]);
+        const [statsRes, bidsRes, ordersRes] = await Promise.all([
+        api.get("/dashboard/buyer"),
+        api.get("/bids/my"),
+        api.get("/orders/my"),
+      ]);
 
-        const d = statsRes.data.dashboard;
-        setStats({
-          activeBids: d.active_bids?.length || 0,
-          wonAuctions: d.auctions_won,
-          totalSpent: d.total_spent,
-          pendingPayments: d.pending_orders?.length || 0,
-        });
-        setListData(bidsRes.data.bids || []);
-      }
+      const d = statsRes.data.dashboard;
+      setStats({
+        activeBids: d.active_bids?.length || 0,
+        wonAuctions: d.auctions_won,
+        totalSpent: d.total_spent,
+        pendingPayments: d.pending_orders?.length || 0,
+      });
+      setListData(bidsRes.data.bids || []);
+      // Filter only pending orders
+      const pending = (ordersRes.data.orders || []).filter(o => o.status === "PENDING");
+      setPendingOrders(pending);
+    }
     } catch (err) {
       setError("Failed to load dashboard.");
     } finally {
@@ -464,6 +469,47 @@ export default function DashboardScreen({ navigation }) {
         </View>
       )}
 
+    {/* PENDING PAYMENTS SECTION */}
+    {pendingOrders.length > 0 && (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Pending Payments</Text>
+            <View style={[styles.countBadge, { backgroundColor: "#FFF8EE" }]}>
+              <Text style={[styles.countBadgeText, { color: "#C8943A" }]}>
+                {pendingOrders.length}
+              </Text>
+            </View>
+          </View>
+        </View>
+        {pendingOrders.map((order) => (
+          <View key={order.id} style={styles.pendingOrderCard}>
+            <View style={styles.auctionCardTop}>
+              <View style={styles.auctionInfo}>
+                <Text style={styles.auctionTitle} numberOfLines={1}>
+                  {order.auction_title || `Order #${order.id?.slice(0, 8)}`}
+                </Text>
+                <Text style={styles.auctionCategory}>
+                  Due: {new Date(order.payment_deadline).toLocaleDateString("en-IN", {
+                    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+                  })}
+                </Text>
+              </View>
+              <Text style={styles.pendingAmount}>
+                ₹{Number(order.final_amount).toLocaleString("en-IN")}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.payNowBtn}
+              onPress={() => navigation.navigate("Payment", { orderId: order.id })}
+              activeOpacity={0.85}>
+              <Text style={styles.payNowText}>Pay Now →</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    )}
+
       <View style={styles.section}>
         <TouchableOpacity
           style={styles.actionButton}
@@ -621,4 +667,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF5F3",
   },
   draftDeleteText: { fontSize: 14 },
+  pendingOrderCard: {
+  backgroundColor: "#FFFFFF", borderRadius: 14, padding: 16,
+  marginBottom: 12, borderWidth: 1.5, borderColor: "#F5D78E",
+},
+pendingAmount: { fontSize: 16, fontWeight: "800", color: "#D94F2B" },
+payNowBtn: {
+  backgroundColor: "#D94F2B", borderRadius: 10,
+  paddingVertical: 12, alignItems: "center", marginTop: 4,
+},
+payNowText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 });

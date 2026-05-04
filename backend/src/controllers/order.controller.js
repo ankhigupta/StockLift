@@ -246,10 +246,62 @@ const promoteOrder = async (req, res, next) => {
   }
 };
 
+// PUT /orders/:id/mark-paid
+const markOrderPaid = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const buyer_id = req.user.id;
+ 
+    // Verify order belongs to this buyer
+    const orderResult = await pool.query(
+      "SELECT * FROM orders WHERE id = $1 AND buyer_id = $2",
+      [id, buyer_id]
+    );
+ 
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+ 
+    const order = orderResult.rows[0];
+ 
+    if (order.status !== "PENDING") {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Order is already ${order.status}` 
+      });
+    }
+ 
+    // Check payment deadline
+    if (new Date(order.payment_deadline) < new Date()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Payment deadline has expired" 
+      });
+    }
+ 
+    await pool.query(
+      "UPDATE orders SET status = 'PAID', updated_at = NOW() WHERE id = $1",
+      [id]
+    );
+ 
+    // Mark auction as SOLD
+    await pool.query(
+      "UPDATE auctions SET status = 'SOLD', updated_at = NOW() WHERE id = $1",
+      [order.auction_id]
+    );
+ 
+    res.json({ success: true, message: "Payment confirmed successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 module.exports = {
   createOrderFromAuction,
   getMyOrders,
   getSellerOrders,
   getOrderById,
   promoteOrder,
+  markOrderPaid,
 };
