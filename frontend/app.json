@@ -24,19 +24,23 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.stocklift.app"
-}
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-secure-store",
-      "@react-native-community/datetimepicker"
-    ],
     "extra": {
       "eas": {
         "projectId": "60707636-6038-411b-9c91-c90cc7bb37fe"
       }
     }
+  },
+  "web": {
+    "favicon": "./assets/favicon.png"
+  },
+  "plugins": [
+    "expo-secure-store",
+    "@react-native-community/datetimepicker"
+  ],
+  "extra": {
+    "eas": {
+      "projectId": "60707636-6038-411b-9c91-c90cc7bb37fe"
+    }
   }
-
+}
